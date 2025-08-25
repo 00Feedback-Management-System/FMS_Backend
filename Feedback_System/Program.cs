@@ -1,4 +1,7 @@
 
+using Feedback_System.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace Feedback_System
 {
     public class Program
@@ -6,6 +9,12 @@ namespace Feedback_System
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            var connectionString = builder.Configuration.GetConnectionString("DBConnection");
+
+            builder.Services.AddDbContext<ApplicationDBContext>(options => {
+                options.UseSqlServer(connectionString);
+            });
 
             // Add services to the container.
 
