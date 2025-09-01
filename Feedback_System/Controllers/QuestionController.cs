@@ -25,7 +25,7 @@ namespace Feedback_System.Controllers
         {
             try
             {
-                var FeedbackQuetions = _db.FeedbackQuetions
+                var FeedbackQuetions = _db.FeedbackQuestions
                     .Select(q => new FeedbackQuestionsDto
                     {
                         question_id = q.question_id,
@@ -51,7 +51,7 @@ namespace Feedback_System.Controllers
             //if (string.IsNullOrEmpty(student_rollno))
             //    return BadRequest("Student roll number is required.");
 
-            var FeedbackQutions = _db.FeedbackQuetions.FirstOrDefault(u => u.question_id == question_id);
+            var FeedbackQutions = _db.FeedbackQuestions.FirstOrDefault(u => u.question_id == question_id);
 
             if (FeedbackQutions == null)
                 return NotFound($"No question found with this id '{question_id}'.");
@@ -78,12 +78,12 @@ namespace Feedback_System.Controllers
         public ActionResult<FeedbackQuestionsDto> CreateQutions([FromBody] FeedbackQuestionsDto feedbackqutionsdto)
         {
 
-            if (_db.FeedbackQuetions.Any(u => u.question_id == feedbackqutionsdto.question_id))
+            if (_db.FeedbackQuestions.Any(u => u.question_id == feedbackqutionsdto.question_id))
             {
                 ModelState.AddModelError("question_id", "A qutions with this qutions id is already exists.");
                 return BadRequest(ModelState);
             }
-            var FeedbackQutions = new FeedbackQuetions
+            var FeedbackQutions = new FeedbackQuestion
             {
                 question_id = feedbackqutionsdto.question_id,
                 question = feedbackqutionsdto.question,
@@ -91,7 +91,7 @@ namespace Feedback_System.Controllers
                 feedback_type_id = feedbackqutionsdto.feedback_type_id,
             };
 
-            _db.FeedbackQuetions.Add(FeedbackQutions);
+            _db.FeedbackQuestions.Add(FeedbackQutions);
             _db.SaveChanges();
 
             var createdDto = new FeedbackQuestionsDto
@@ -115,7 +115,7 @@ namespace Feedback_System.Controllers
             if (feedbackqutionsdto == null)
                 return BadRequest("Invalid question data.");
 
-            var questionsFromDb = _db.FeedbackQuetions.FirstOrDefault(u => u.question_id == feedbackqutionsdto.question_id);
+            var questionsFromDb = _db.FeedbackQuestions.FirstOrDefault(u => u.question_id == feedbackqutionsdto.question_id);
             if (questionsFromDb == null)
                 return NotFound($"No questions found with this question id '{feedbackqutionsdto.question_id}'.");
 
@@ -124,7 +124,7 @@ namespace Feedback_System.Controllers
             questionsFromDb.question_type = feedbackqutionsdto.question_type;
             questionsFromDb.feedback_type_id = feedbackqutionsdto.feedback_type_id;
 
-            _db.FeedbackQuetions.Update(questionsFromDb);
+            _db.FeedbackQuestions.Update(questionsFromDb);
             _db.SaveChanges();
             return Ok(questionsFromDb);
         }
@@ -139,11 +139,11 @@ namespace Feedback_System.Controllers
             //if (string.IsNullOrWhiteSpace(student_rollno))
             //    return BadRequest("Student roll number is required.");
 
-            var FeedbackQutions = _db.FeedbackQuetions.FirstOrDefault(u => u.question_id == question_id);
+            var FeedbackQutions = _db.FeedbackQuestions.FirstOrDefault(u => u.question_id == question_id);
             if (FeedbackQutions == null)
                 return NotFound($"No questions found with this id '{question_id}'.");
 
-            _db.FeedbackQuetions.Remove(FeedbackQutions);
+            _db.FeedbackQuestions.Remove(FeedbackQutions);
             _db.SaveChanges();
 
             return NoContent();

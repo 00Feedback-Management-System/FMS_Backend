@@ -4,6 +4,7 @@ using Feedback_System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Feedback_System.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250901030738_Initial-MGR")]
+    partial class InitialMGR
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,57 +53,6 @@ namespace Feedback_System.Migrations
                     b.HasKey("course_id");
 
                     b.ToTable("Courses");
-                });
-
-            modelBuilder.Entity("Feedback_System.Model.CourseGroup", b =>
-                {
-                    b.Property<int>("course_group_id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("course_group_id"));
-
-                    b.Property<int>("course_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("group_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("module_id")
-                        .HasColumnType("int");
-
-                    b.HasKey("course_group_id");
-
-                    b.HasIndex("course_id");
-
-                    b.HasIndex("group_id");
-
-                    b.HasIndex("module_id");
-
-                    b.ToTable("CourseGroups");
-                });
-
-            modelBuilder.Entity("Feedback_System.Model.CourseStudent", b =>
-                {
-                    b.Property<int>("course_student_id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("course_student_id"));
-
-                    b.Property<int>("course_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("student_rollno")
-                        .HasColumnType("int");
-
-                    b.HasKey("course_student_id");
-
-                    b.HasIndex("course_id");
-
-                    b.HasIndex("student_rollno");
-
-                    b.ToTable("CourseStudents");
                 });
 
             modelBuilder.Entity("Feedback_System.Model.Feedback", b =>
@@ -305,37 +257,6 @@ namespace Feedback_System.Migrations
                     b.ToTable("Modules");
                 });
 
-            modelBuilder.Entity("Feedback_System.Model.RoleAccess", b =>
-                {
-                    b.Property<int>("role_access_id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("role_access_id"));
-
-                    b.Property<string>("component")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("route")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("staffrole_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("student_rollno")
-                        .HasColumnType("int");
-
-                    b.HasKey("role_access_id");
-
-                    b.HasIndex("staffrole_id");
-
-                    b.HasIndex("student_rollno");
-
-                    b.ToTable("RoleAccesses");
-                });
-
             modelBuilder.Entity("Feedback_System.Model.Staff", b =>
                 {
                     b.Property<int>("staff_id")
@@ -440,52 +361,6 @@ namespace Feedback_System.Migrations
                     b.ToTable("Students");
                 });
 
-            modelBuilder.Entity("Feedback_System.Model.CourseGroup", b =>
-                {
-                    b.HasOne("Feedback_System.Model.Course", "Course")
-                        .WithMany()
-                        .HasForeignKey("course_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Feedback_System.Model.Groups", "Groups")
-                        .WithMany()
-                        .HasForeignKey("group_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Feedback_System.Model.Modules", "Module")
-                        .WithMany()
-                        .HasForeignKey("module_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Groups");
-
-                    b.Navigation("Module");
-                });
-
-            modelBuilder.Entity("Feedback_System.Model.CourseStudent", b =>
-                {
-                    b.HasOne("Feedback_System.Model.Course", "Course")
-                        .WithMany()
-                        .HasForeignKey("course_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Feedback_System.Model.Student", "Student")
-                        .WithMany()
-                        .HasForeignKey("student_rollno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Student");
-                });
-
             modelBuilder.Entity("Feedback_System.Model.Feedback", b =>
                 {
                     b.HasOne("Feedback_System.Model.Course", "Course")
@@ -566,25 +441,6 @@ namespace Feedback_System.Migrations
                         .IsRequired();
 
                     b.Navigation("Feedback");
-
-                    b.Navigation("Students");
-                });
-
-            modelBuilder.Entity("Feedback_System.Model.RoleAccess", b =>
-                {
-                    b.HasOne("Feedback_System.Model.Staffroles", "Staffroles")
-                        .WithMany()
-                        .HasForeignKey("staffrole_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Feedback_System.Model.Student", "Students")
-                        .WithMany()
-                        .HasForeignKey("student_rollno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Staffroles");
 
                     b.Navigation("Students");
                 });
