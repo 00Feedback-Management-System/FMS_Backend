@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Feedback_System.Controllers
@@ -12,10 +13,12 @@ namespace Feedback_System.Controllers
     public class StudentController : Controller
     {
         private readonly ApplicationDBContext _db;
+        private readonly PasswordServices _passwordServices;
 
-        public StudentController(ApplicationDBContext db)
+        public StudentController(ApplicationDBContext db, PasswordServices passwordServices)
         {
             _db = db;
+            _passwordServices = passwordServices;
         }
 
 
@@ -94,6 +97,7 @@ namespace Feedback_System.Controllers
                 ModelState.AddModelError("student_rollno", "A student with this roll number already exists.");
                 return BadRequest(ModelState);
             }
+            var hashedPassword = _passwordServices.HashPassword(studentDto.password);
 
             var student = new Student
             {
@@ -101,7 +105,7 @@ namespace Feedback_System.Controllers
                 first_name = studentDto.first_name,
                 last_name = studentDto.last_name,
                 email = studentDto.email,
-                password = studentDto.password,
+                password = hashedPassword,
                 group_id = studentDto.group_id,
                 profile_image = studentDto.profile_image,
                 login_time = studentDto.login_time
@@ -109,7 +113,7 @@ namespace Feedback_System.Controllers
 
             _db.Students.Add(student);
             _db.SaveChanges();
-
+            studentDto.password = null;
             var createdDto = new StudentDto
             {
                 student_rollno = student.student_rollno,
@@ -140,7 +144,7 @@ namespace Feedback_System.Controllers
             if (studentFromDb == null)
                 return NotFound($"No student found with roll number '{student_rollno}'.");
 
-           
+
             studentFromDb.first_name = studentDto.first_name;
             studentFromDb.last_name = studentDto.last_name;
             studentFromDb.email = studentDto.email;
@@ -175,6 +179,21 @@ namespace Feedback_System.Controllers
 
             return NoContent();
         }
+        [HttpPost("Login")]
+        public IActionResult Login([FromBody] LoginDto loginDto)
+        {
+            var students = _db.Students.ToList();
+            var student = _db.Students.FirstOrDefault(u => u.email == loginDto.email);
+            if (student == null)
+                return Unauthorized("Invalid credentials");
+
+            var isValid = _passwordServices.VerifyPassword(student.password, loginDto.password);
+            if (!isValid)
+                return Unauthorized("Invalid credentials");
+
+            return Ok(new { message = "Login successful", student_rollno = student.student_rollno });
+        }
 
     }
 }
+
