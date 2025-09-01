@@ -140,7 +140,7 @@ namespace Feedback_System.Controllers
             if (studentFromDb == null)
                 return NotFound($"No student found with roll number '{student_rollno}'.");
 
-           
+
             studentFromDb.first_name = studentDto.first_name;
             studentFromDb.last_name = studentDto.last_name;
             studentFromDb.email = studentDto.email;
@@ -178,3 +178,4 @@ namespace Feedback_System.Controllers
 
     }
 }
+

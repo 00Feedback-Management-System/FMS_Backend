@@ -11,5 +11,6 @@ namespace Feedback_System.Data
         public DbSet<Modules> Modules { get; set; }
         public DbSet<Groups> Groups { get; set; }
 
+
     }
 }
