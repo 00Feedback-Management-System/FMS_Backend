@@ -20,6 +20,6 @@ namespace Feedback_System.Data
         public DbSet<CourseGroup> CourseGroups { get; set; }
         public DbSet<CourseStudent> CourseStudents { get; set; }
         public DbSet<RoleAccess> RoleAccesses { get; set; }
-
+        public DbSet<Staff> Staff { get; set; }
     }
 }
