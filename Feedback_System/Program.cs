@@ -1,5 +1,6 @@
 
 using Feedback_System.Data;
+using Feedback_System.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Feedback_System
@@ -34,6 +35,7 @@ namespace Feedback_System
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<PasswordServices>();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
