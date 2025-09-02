@@ -21,5 +21,7 @@ namespace Feedback_System.Data
         public DbSet<CourseStudent> CourseStudents { get; set; }
         public DbSet<RoleAccess> RoleAccesses { get; set; }
         public DbSet<Staff> Staff { get; set; }
+
+        public DbSet<Staffroles> Staffroles { get; set; }
     }
 }
