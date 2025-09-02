@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Feedback_System.Controllers
@@ -10,9 +11,12 @@ namespace Feedback_System.Controllers
     public class StaffController : ControllerBase
     {
         public readonly ApplicationDBContext _db;
-        public StaffController(ApplicationDBContext dbContext)
+        private readonly PasswordServices _passwordServices;
+
+        public StaffController(ApplicationDBContext dbContext, PasswordServices passwordServices)
         {
             _db = dbContext;
+            _passwordServices = passwordServices;
         }
 
         [HttpPost("addStaff")]
@@ -27,6 +31,8 @@ namespace Feedback_System.Controllers
                 if (existingStaff != null)
                     return BadRequest(new { message = "Email already registered" });
 
+                var hashedPassword = _passwordServices.HashPassword(staffDTO.password);
+
                 Staff staff = new Staff
                 {
                     staffrole_id = staffDTO.staffrole_id,
@@ -34,9 +40,8 @@ namespace Feedback_System.Controllers
                     first_name = staffDTO.first_name,
                     last_name = staffDTO.last_name,
                     email = staffDTO.email,
-                    password = staffDTO.password,
-                    profile_image = staffDTO.profile_image,
-                    login_time = DateTime.Now
+                    password = hashedPassword,
+                    profile_image = staffDTO.profile_image
                 };
 
                 _db.Staff.Add(staff);
