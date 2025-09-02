@@ -10,5 +10,12 @@ namespace Feedback_System.DTO
 
         [Required(ErrorMessage = "Password is required.")]
         public string password { get; set; }
+
+        //shri 
+
+        [Required(ErrorMessage = "Role is required.")]
+        public string role { get; set; }
+
+
     }
 }
