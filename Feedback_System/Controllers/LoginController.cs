@@ -86,5 +86,48 @@ namespace Feedback_System.Controllers
                 return BadRequest("Invalid role specified.");
             }
         }
+
+
+        [HttpPost]
+        [Route("api/Forgot-Password")]
+
+        public IActionResult ForgotPassword([FromBody] LoginDto loginDto)
+        {
+            if (loginDto.role == null)
+            {
+                return BadRequest("Role is required.");
+            }
+            var passwordHasher = new PasswordHasher<object>();
+            if (loginDto.role == "student")
+            {
+                var student = _context.Students.FirstOrDefault(s => s.email == loginDto.email);
+                if (student == null)
+                {
+                    return NotFound(new { message = "Email not found." });
+                }
+                // Hash the new password
+                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+                student.password = hashedPassword;
+                _context.SaveChanges();
+                return Ok(new { message = "Password reset successful." });
+            }
+            else if (loginDto.role == "staff" || loginDto.role == "admin")
+            {
+                var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
+                if (user == null)
+                {
+                    return NotFound(new { message = "Email not found." });
+                }
+                // Hash the new password
+                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+                user.password = hashedPassword;
+                _context.SaveChanges();
+                return Ok(new { message = "Password reset successful." });
+            }
+            else
+            {
+                return BadRequest("Invalid role specified.");
+            }
+        }
     }
 }
