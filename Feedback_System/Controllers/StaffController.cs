@@ -82,5 +82,83 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
+
+        [HttpGet("getStaff/{id}")]
+        public IActionResult GetStaffById(int id)
+        {
+            try
+            {
+                var staff = _db.Staff.FirstOrDefault(s => s.staff_id == id);
+                if (staff == null)
+                    return NotFound(new { message = "Staff not found" });
+
+                return Ok(new
+                {
+                    staff.staff_id,
+                    staff.staffrole_id,
+                    staff.group_id,
+                    staff.first_name,
+                    staff.last_name,
+                    staff.email,
+                    staff.profile_image,
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
+        }
+
+        [HttpPut("updateStaff/{id}")]
+        public IActionResult UpdateStaff(int id, [FromBody] StaffDTO staffDTO)
+        {
+            try
+            {
+                var staff = _db.Staff.FirstOrDefault(s => s.staff_id == id);
+                if (staff == null)
+                    return NotFound(new { message = "Staff not found" });
+
+                staff.staffrole_id = staffDTO.staffrole_id;
+                staff.group_id = staffDTO.group_id;
+                staff.first_name = staffDTO.first_name;
+                staff.last_name = staffDTO.last_name;
+                staff.email = staffDTO.email;
+                if(!string.IsNullOrEmpty(staffDTO.password))
+                {
+                    staff.password = _passwordServices.HashPassword(staffDTO.password);
+                }
+                staff.profile_image = staffDTO.profile_image;
+
+                _db.Staff.Update(staff);
+                _db.SaveChanges();
+
+                return Ok(new { message= "Staff updated successfully"});
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("deleteStaff/{id}")]
+        public IActionResult DeleteStaff(int id)
+        {
+            try
+            {
+                var staff = _db.Staff.FirstOrDefault(s => s.staff_id == id);
+                if (staff == null)
+                    return NotFound(new { message = "Staff not found" });
+
+                _db.Staff.Remove(staff);
+                _db.SaveChanges();
+
+                return Ok(new { message = "Staff deleted successfully" });
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
