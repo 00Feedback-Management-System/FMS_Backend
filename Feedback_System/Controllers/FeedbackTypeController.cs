@@ -2,6 +2,7 @@
 using Feedback_System.DTO;
 using Feedback_System.Model;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Feedback_System.Controllers
 {
@@ -79,30 +80,44 @@ namespace Feedback_System.Controllers
         [HttpPost]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
-        public ActionResult<FeedbackTypeDto> CreateFeedbackType([FromBody] FeedbackTypeDto dto)
+        public async Task<IActionResult> CreateFeedbackType([FromBody] CreateFeedbackTypeDto dto)
         {
-            if (dto == null)
-                return BadRequest("Feedback type data is required.");
+            if (dto == null) return BadRequest("Invalid data");
 
+            // Create FeedbackType
             var feedbackType = new FeedbackType
             {
-                feedback_type_title = dto.feedback_type_title,
-                feedback_type_description = dto.feedback_type_description,
-                is_module = dto.is_module,
-                group = dto.group,
-                is_staff = dto.is_staff,
-                is_session = dto.is_session,
-                behaviour = dto.behaviour
+                feedback_type_title = dto.FeedbackTypeTitle,
+                feedback_type_description = dto.FeedbackTypeDescription,
+                is_module = dto.IsModule,
+                group = dto.Group,
+                is_staff = dto.IsStaff,
+                is_session = dto.IsSession,
+                behaviour = dto.Behaviour
             };
 
             _db.FeedbackType.Add(feedbackType);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
-            dto.feedback_type_id = feedbackType.feedback_type_id;
+            // Now insert related questions
+            if (dto.Questions != null && dto.Questions.Any())
+            {
+                var questions = dto.Questions.Select(q => new FeedbackQuestion
+                {
+                    question = q.Question,
+                    question_type = q.QuestionType,
+                    feedback_type_id = feedbackType.feedback_type_id
+                }).ToList();
 
-            return CreatedAtAction(nameof(GetFeedbackType),
-                new { id = feedbackType.feedback_type_id },
-                dto);
+                _db.FeedbackQuestions.AddRange(questions);
+                await _db.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                Message = "FeedbackType created successfully",
+                FeedbackTypeId = feedbackType.feedback_type_id
+            });
         }
 
         // PUT: api/FeedbackType/{id}
