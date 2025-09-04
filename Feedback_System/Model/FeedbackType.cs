@@ -21,5 +21,8 @@ namespace Feedback_System.Model
         public Boolean is_session { get; set; }
 
         public Boolean behaviour { get; set; }
+
+        // Navigation property (One-to-Many)
+        public ICollection<FeedbackQuestion> FeedbackQuestions { get; set; }
     }
 }
