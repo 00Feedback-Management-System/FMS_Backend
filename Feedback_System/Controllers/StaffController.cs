@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Feedback_System.Controllers
 {
-    [Route("staff")]
+    [Route("api/staff")]
     [ApiController]
     public class StaffController : ControllerBase
     {
@@ -68,8 +68,7 @@ namespace Feedback_System.Controllers
                     s.first_name,
                     s.last_name,
                     s.email,
-                    s.profile_image,
-                    s.login_time
+                    s.profile_image
                 }).ToList();
 
                 if (!staffList.Any())
