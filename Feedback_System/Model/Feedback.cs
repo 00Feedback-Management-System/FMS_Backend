@@ -4,11 +4,13 @@ using System.Reflection;
 
 namespace Feedback_System.Model
 {
+    [Table("Feedback")]
     public class Feedback
     {
-        [Key]
 
-        public int feedback_id { get; set; }
+        [Key]
+        [Column("feedback_id")]
+        public int FeedbackId { get; set; } //mapped feedback_id with FeedbackId
 
         [ForeignKey("Course")]
 

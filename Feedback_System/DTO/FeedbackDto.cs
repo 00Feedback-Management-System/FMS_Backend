@@ -4,7 +4,7 @@ namespace Feedback_System.DTO
 {
     public class FeedbackDto
     {
-        //[Column("feedback_id")]
+        [Column("feedback_id")]
         public int feedback_id { get; set; }
         public int course_id { get; set; }
         public int module_id { get; set; }
