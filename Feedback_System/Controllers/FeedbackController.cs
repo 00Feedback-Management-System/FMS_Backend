@@ -29,7 +29,7 @@ namespace Feedback_System.Controllers
                 .Include(f => f.Staff)
                 .Select(f => new FeedbackDto
                 {
-                    feedback_id = f.feedback_id,
+                    feedback_id = f.FeedbackId,
                     course_id = f.course_id,
                     module_id = f.module_id,
                     feedback_type_id = f.feedback_type_id,
@@ -62,7 +62,7 @@ namespace Feedback_System.Controllers
 
             var feedback = new Feedback
             {
-                feedback_id = dto.feedback_id,
+                FeedbackId = dto.feedback_id,
                 course_id = dto.course_id,
                 module_id = dto.module_id,
                 feedback_type_id = dto.feedback_type_id,
@@ -90,11 +90,11 @@ namespace Feedback_System.Controllers
                 _db.SaveChanges();
             }
 
-            dto.feedback_id = feedback.feedback_id;
+            dto.feedback_id = feedback.FeedbackId;
 
 
             return CreatedAtAction(nameof(GetFeedback),
-               new { id = feedback.feedback_id },
+               new { id = feedback.FeedbackId },
                 dto);
         }
 
@@ -107,7 +107,7 @@ namespace Feedback_System.Controllers
             if (id <= 0)
                 return BadRequest("Invalid feedback type ID.");
 
-            var feedback = _db.Feedback.FirstOrDefault(f => f.feedback_id == id);
+            var feedback = _db.Feedback.FirstOrDefault(f => f.FeedbackId == id);
             if (feedback == null)
                 return NotFound($"Feedback with ID '{id}' not found.");
 
@@ -126,11 +126,11 @@ namespace Feedback_System.Controllers
             if (dto == null)
                 return BadRequest("Feedback data is required.");
 
-            var feedback = _db.Feedback.FirstOrDefault(f => f.feedback_id == id);
+            var feedback = _db.Feedback.FirstOrDefault(f => f.FeedbackId == id);
             if (feedback == null)
                 return NotFound($"Feedback with ID '{id}' not found.");
 
-            // Update fields
+           
             feedback.course_id = dto.course_id;
             feedback.module_id = dto.module_id;
             feedback.feedback_type_id = dto.feedback_type_id;
