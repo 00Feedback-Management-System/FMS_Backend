@@ -51,7 +51,7 @@ namespace Feedback_System.Controllers
                     }
                 });
             }
-            else if (loginDto.role == "staff" || loginDto.role == "admin")
+            else if (loginDto.role == "staff")
             {
                 var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
 
@@ -66,7 +66,42 @@ namespace Feedback_System.Controllers
                                 .Where(r => r.staffrole_id == user.staffrole_id)
                                 .Select(r => r.staffrole_name)
                                 .FirstOrDefault();
+                //if(roleName != "Trainer")
+                //{
+                //    return Unauthorized(new { message = "Access denied. Not an staff user." });
+                //}
 
+                return Ok(new
+                {
+                    message = "Login successful.",
+                    users = new
+                    {
+                        id = user.staff_id,
+                        first_name = user.first_name,
+                        last_name = user.last_name,
+                        email = user.email,
+                        //role = user.staffrole_id
+                        role = roleName
+                    }
+                });
+            }
+            else if (loginDto.role == "admin")
+            {
+                var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
+                if (user == null ||
+                    passwordHasher.VerifyHashedPassword(null, user.password, loginDto.password) == PasswordVerificationResult.Failed)
+                {
+                    return Unauthorized(new { message = "Invalid email or password." });
+                }
+                // 🔎 fetch role name using staffrole_id
+                var roleName = _context.Staffroles
+                                .Where(r => r.staffrole_id == user.staffrole_id)
+                                .Select(r => r.staffrole_name)
+                                .FirstOrDefault();
+                if (roleName != "Admin")
+                {
+                    return Unauthorized(new { message = "Access denied. Not an admin user." });
+                }
                 return Ok(new
                 {
                     message = "Login successful.",
@@ -111,7 +146,20 @@ namespace Feedback_System.Controllers
                 _context.SaveChanges();
                 return Ok(new { message = "Password reset successful." });
             }
-            else if (loginDto.role == "staff" || loginDto.role == "admin")
+            else if (loginDto.role == "staff")
+            {
+                var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
+                if (user == null)
+                {
+                    return NotFound(new { message = "Email not found." });
+                }
+                // Hash the new password
+                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+                user.password = hashedPassword;
+                _context.SaveChanges();
+                return Ok(new { message = "Password reset successful." });
+            }
+            else if (loginDto.role == "admin")
             {
                 var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
                 if (user == null)
