@@ -8,7 +8,7 @@ namespace Feedback_System.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class FeedbackTypeController : Controller
+    public class FeedbackTypeController : ControllerBase
     {
         private readonly ApplicationDBContext _db;
 
@@ -17,12 +17,9 @@ namespace Feedback_System.Controllers
             _db = db;
         }
 
-
-        // GET: api/FeedbackType
-
+        // GET: api/FeedbackType/GetFeedbackType
         [Route("GetFeedbackType")]
         [HttpGet]
-        [ProducesResponseType(200)]
         public ActionResult<IEnumerable<FeedbackTypeDto>> GetFeedbackTypes()
         {
             var types = _db.FeedbackType
@@ -42,49 +39,45 @@ namespace Feedback_System.Controllers
             return Ok(types);
         }
 
-
         // GET: api/FeedbackType/{id}
-
-        [HttpGet("GetFeedbackById/{id:int}")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(400)]
-        public ActionResult<FeedbackTypeDto> GetFeedbackType(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetFeedbackType(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid feedback type ID.");
+            var feedbackType = await _db.FeedbackType
+                .Include(ft => ft.FeedbackQuestions)
+                .FirstOrDefaultAsync(ft => ft.feedback_type_id == id);
 
-            var feedbackType = _db.FeedbackType.FirstOrDefault(f => f.feedback_type_id == id);
             if (feedbackType == null)
-                return NotFound($"Feedback type with ID '{id}' not found.");
+                return NotFound();
 
-            var dto = new FeedbackTypeDto
+            var result = new
             {
-                feedback_type_id = feedbackType.feedback_type_id,
-                feedback_type_title = feedbackType.feedback_type_title,
-                feedback_type_description = feedbackType.feedback_type_description,
-                is_module = feedbackType.is_module,
-                group = feedbackType.group,
-                is_staff = feedbackType.is_staff,
-                is_session = feedbackType.is_session,
-                behaviour = feedbackType.behaviour
+                FeedbackTypeId = feedbackType.feedback_type_id,
+                FeedbackTypeTitle = feedbackType.feedback_type_title,
+                FeedbackTypeDescription = feedbackType.feedback_type_description,
+                IsModule = feedbackType.is_module,
+                Group = feedbackType.group,
+                IsStaff = feedbackType.is_staff,
+                IsSession = feedbackType.is_session,
+                Behaviour = feedbackType.behaviour,
+                Questions = feedbackType.FeedbackQuestions.Select(q => new
+                {
+                    QuestionId = q.question_id,
+                    Question = q.question,
+                    QuestionType = q.question_type
+                }).ToList()
             };
 
-            return Ok(dto);
+            return Ok(result);
         }
 
-
-        // POST: api/FeedbackType
-
+        // POST: api/FeedbackType/CreateFeedbackType
         [Route("CreateFeedbackType")]
         [HttpPost]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(400)]
         public async Task<IActionResult> CreateFeedbackType([FromBody] CreateFeedbackTypeDto dto)
         {
             if (dto == null) return BadRequest("Invalid data");
 
-            // Create FeedbackType
             var feedbackType = new FeedbackType
             {
                 feedback_type_title = dto.FeedbackTypeTitle,
@@ -99,7 +92,6 @@ namespace Feedback_System.Controllers
             _db.FeedbackType.Add(feedbackType);
             await _db.SaveChangesAsync();
 
-            // Now insert related questions
             if (dto.Questions != null && dto.Questions.Any())
             {
                 var questions = dto.Questions.Select(q => new FeedbackQuestion
@@ -121,50 +113,64 @@ namespace Feedback_System.Controllers
         }
 
         // PUT: api/FeedbackType/{id}
-        [HttpPut("UpdateFeedbackType")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public IActionResult UpdateFeedbackType([FromBody] FeedbackTypeDto dto)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateFeedbackType(int id, [FromBody] CreateFeedbackTypeDto dto)
         {
-            if (dto == null)
-                return BadRequest("Invalid question data.");
-            var feedbackType = _db.FeedbackType.FirstOrDefault(f => f.feedback_type_id == dto.feedback_type_id);
-            if (feedbackType == null)
-                return NotFound($"Feedback type with ID '{dto.feedback_type_id}' not found.");
+            if (dto == null) return BadRequest("Invalid data");
 
-            feedbackType.feedback_type_title = dto.feedback_type_title;
-            feedbackType.feedback_type_description = dto.feedback_type_description;
-            feedbackType.is_module = dto.is_module;
-            feedbackType.group = dto.group;
-            feedbackType.is_staff = dto.is_staff;
-            feedbackType.is_session = dto.is_session;
-            feedbackType.behaviour = dto.behaviour;
+            var feedbackType = await _db.FeedbackType
+                .Include(ft => ft.FeedbackQuestions)
+                .FirstOrDefaultAsync(ft => ft.feedback_type_id == id);
 
-            _db.FeedbackType.Update(feedbackType);
-            _db.SaveChanges();
-            return Ok(feedbackType);
+            if (feedbackType == null) return NotFound();
+
+            // Update main fields
+            feedbackType.feedback_type_title = dto.FeedbackTypeTitle;
+            feedbackType.feedback_type_description = dto.FeedbackTypeDescription;
+            feedbackType.is_module = dto.IsModule;
+            feedbackType.group = dto.Group;
+            feedbackType.is_staff = dto.IsStaff;
+            feedbackType.is_session = dto.IsSession;
+            feedbackType.behaviour = dto.Behaviour;
+
+            // Replace questions: delete old and add new
+            _db.FeedbackQuestions.RemoveRange(feedbackType.FeedbackQuestions);
+
+            if (dto.Questions != null && dto.Questions.Any())
+            {
+                feedbackType.FeedbackQuestions = dto.Questions.Select(q => new FeedbackQuestion
+                {
+                    question = q.Question,
+                    question_type = q.QuestionType,
+                    feedback_type_id = feedbackType.feedback_type_id
+                }).ToList();
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { Message = "FeedbackType updated successfully" });
         }
 
         // DELETE: api/FeedbackType/{id}
-
-        [HttpDelete("DeleteFeedbackType/{id:int}")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public IActionResult DeleteFeedbackType(int id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteFeedbackType(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid feedback type ID.");
+            var feedbackType = await _db.FeedbackType
+                .Include(ft => ft.FeedbackQuestions)
+                .FirstOrDefaultAsync(ft => ft.feedback_type_id == id);
 
-            var feedbackType = _db.FeedbackType.FirstOrDefault(f => f.feedback_type_id == id);
             if (feedbackType == null)
-                return NotFound($"Feedback type with ID '{id}' not found.");
+                return NotFound(new { Message = "FeedbackType not found" });
+
+            if (feedbackType.FeedbackQuestions != null && feedbackType.FeedbackQuestions.Any())
+            {
+                _db.FeedbackQuestions.RemoveRange(feedbackType.FeedbackQuestions);
+            }
 
             _db.FeedbackType.Remove(feedbackType);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { Message = "FeedbackType deleted successfully" });
         }
     }
 }
