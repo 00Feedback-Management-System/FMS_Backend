@@ -17,6 +17,7 @@ namespace Feedback_System.Data
         public DbSet<FeedbackAnswer> FeedbackAnswers { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Feedback> Feedback { get; set; }
+        public DbSet<FeedbackGroup> FeedbackGroup {  get; set; }
         public DbSet<CourseGroup> CourseGroups { get; set; }
         public DbSet<CourseStudent> CourseStudents { get; set; }
         public DbSet<RoleAccess> RoleAccesses { get; set; }
