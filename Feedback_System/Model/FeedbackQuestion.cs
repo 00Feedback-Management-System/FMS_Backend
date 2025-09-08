@@ -15,7 +15,7 @@ namespace Feedback_System.Model
 
         [ForeignKey("FeedbackType")]
 
-        public int feedback_type_id { get; set; }
+        public int? feedback_type_id { get; set; }
 
         // class defined for foreign key relation
 

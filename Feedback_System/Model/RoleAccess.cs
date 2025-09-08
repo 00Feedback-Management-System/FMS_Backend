@@ -10,11 +10,11 @@ namespace Feedback_System.Model
         public int role_access_id { get; set; }
 
         [ForeignKey("Staffroles")]
-        public int staffrole_id { get; set; }
+        public int? staffrole_id { get; set; }
 
         [ForeignKey("Students")]
 
-        public int student_rollno { get; set; }
+        public int? student_rollno { get; set; }
 
         public string route { get; set; }
 

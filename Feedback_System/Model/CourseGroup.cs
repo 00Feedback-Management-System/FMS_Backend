@@ -12,14 +12,14 @@ namespace Feedback_System.Model
 
         [ForeignKey("Course")]
 
-        public int course_id { get; set; }
+        public int? course_id { get; set; }
 
         [ForeignKey("Module")]
-        public int module_id { get; set; }
+        public int? module_id { get; set; }
 
         [ForeignKey("Groups")]
 
-        public int group_id { get; set; }
+        public int? group_id { get; set; }
 
         // class defined for foreign key relation
 

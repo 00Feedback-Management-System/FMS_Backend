@@ -30,10 +30,10 @@ namespace Feedback_System.Controllers
                 .Select(f => new FeedbackDto
                 {
                     feedback_id = f.FeedbackId,
-                    course_id = f.course_id,
-                    module_id = f.module_id,
-                    feedback_type_id = f.feedback_type_id,
-                    staff_id = f.staff_id,
+                    course_id = (int)f.course_id,
+                    module_id = (int)f.module_id,
+                    feedback_type_id = (int)f.feedback_type_id,
+                    staff_id = (int)f.staff_id,
                     session = f.session,
                     start_date = f.start_date,
                     end_date = f.end_date,

@@ -38,7 +38,7 @@ namespace Feedback_System.Controllers
                         last_name = s.last_name,
                         email = s.email,
                         password = s.password,
-                        group_id = s.group_id,
+                        group_id = (int)s.group_id,
                         profile_image = s.profile_image,
                         login_time = s.login_time
                     })
@@ -72,7 +72,7 @@ namespace Feedback_System.Controllers
                 last_name = student.last_name,
                 email = student.email,
                 password = student.password,
-                group_id = student.group_id,
+                group_id = (int)student.group_id,
                 profile_image = student.profile_image,
                 login_time = student.login_time
             };
@@ -121,7 +121,7 @@ namespace Feedback_System.Controllers
                 last_name = student.last_name,
                 email = student.email,
                 password = student.password,
-                group_id = student.group_id,
+                group_id = (int)student.group_id,
                 profile_image = student.profile_image,
                 login_time = student.login_time
             };

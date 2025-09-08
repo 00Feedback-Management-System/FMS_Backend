@@ -36,7 +36,6 @@ namespace Feedback_System.Controllers
                 Staff staff = new Staff
                 {
                     staffrole_id = staffDTO.staffrole_id,
-                    group_id = staffDTO.group_id,
                     first_name = staffDTO.first_name,
                     last_name = staffDTO.last_name,
                     email = staffDTO.email,
@@ -64,7 +63,6 @@ namespace Feedback_System.Controllers
                 {
                     s.staff_id,
                     s.staffrole_id,
-                    s.group_id,
                     s.first_name,
                     s.last_name,
                     s.email,
@@ -95,7 +93,6 @@ namespace Feedback_System.Controllers
                 {
                     staff.staff_id,
                     staff.staffrole_id,
-                    staff.group_id,
                     staff.first_name,
                     staff.last_name,
                     staff.email,
@@ -119,7 +116,6 @@ namespace Feedback_System.Controllers
                     return NotFound(new { message = "Staff not found" });
 
                 staff.staffrole_id = staffDTO.staffrole_id;
-                staff.group_id = staffDTO.group_id;
                 staff.first_name = staffDTO.first_name;
                 staff.last_name = staffDTO.last_name;
                 staff.email = staffDTO.email;

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Feedback_System.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20250901032636_RemainingTables")]
-    partial class RemainingTables
+    [Migration("20250908051515_Updatedatabase")]
+    partial class Updatedatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -63,13 +63,13 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("course_group_id"));
 
-                    b.Property<int>("course_id")
+                    b.Property<int?>("course_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("group_id")
+                    b.Property<int?>("group_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("module_id")
+                    b.Property<int?>("module_id")
                         .HasColumnType("int");
 
                     b.HasKey("course_group_id");
@@ -91,10 +91,10 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("course_student_id"));
 
-                    b.Property<int>("course_id")
+                    b.Property<int?>("course_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("student_rollno")
+                    b.Property<int?>("student_rollno")
                         .HasColumnType("int");
 
                     b.HasKey("course_student_id");
@@ -108,28 +108,32 @@ namespace Feedback_System.Migrations
 
             modelBuilder.Entity("Feedback_System.Model.Feedback", b =>
                 {
-                    b.Property<int>("feedback_id")
+                    b.Property<int>("FeedbackId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("feedback_id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("feedback_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FeedbackId"));
 
-                    b.Property<int>("course_id")
+                    b.Property<int?>("course_id")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("end_date")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("feedback_type_id")
+                    b.Property<int?>("feedback_type_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("module_id")
+                    b.Property<int?>("group_id")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("module_id")
                         .HasColumnType("int");
 
                     b.Property<int>("session")
                         .HasColumnType("int");
 
-                    b.Property<int>("staff_id")
+                    b.Property<int?>("staff_id")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("start_date")
@@ -139,17 +143,19 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("feedback_id");
+                    b.HasKey("FeedbackId");
 
                     b.HasIndex("course_id");
 
                     b.HasIndex("feedback_type_id");
 
+                    b.HasIndex("group_id");
+
                     b.HasIndex("module_id");
 
                     b.HasIndex("staff_id");
 
-                    b.ToTable("Feedbacks");
+                    b.ToTable("Feedback");
                 });
 
             modelBuilder.Entity("Feedback_System.Model.FeedbackAnswer", b =>
@@ -164,10 +170,10 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("feedback_submit_id")
+                    b.Property<int?>("feedback_submit_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("question_id")
+                    b.Property<int?>("question_id")
                         .HasColumnType("int");
 
                     b.HasKey("answer_id");
@@ -187,7 +193,7 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("question_id"));
 
-                    b.Property<int>("feedback_type_id")
+                    b.Property<int?>("feedback_type_id")
                         .HasColumnType("int");
 
                     b.Property<string>("question")
@@ -213,10 +219,10 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("feedback_submit_id"));
 
-                    b.Property<int>("feedback_id")
+                    b.Property<int?>("feedback_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("student_rollno")
+                    b.Property<int?>("student_rollno")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("submited_at")
@@ -324,10 +330,10 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("staffrole_id")
+                    b.Property<int?>("staffrole_id")
                         .HasColumnType("int");
 
-                    b.Property<int>("student_rollno")
+                    b.Property<int?>("student_rollno")
                         .HasColumnType("int");
 
                     b.HasKey("role_access_id");
@@ -355,9 +361,6 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("group_id")
-                        .HasColumnType("int");
-
                     b.Property<string>("last_name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -373,12 +376,10 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("staffrole_id")
+                    b.Property<int?>("staffrole_id")
                         .HasColumnType("int");
 
                     b.HasKey("staff_id");
-
-                    b.HasIndex("group_id");
 
                     b.HasIndex("staffrole_id");
 
@@ -418,7 +419,7 @@ namespace Feedback_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("group_id")
+                    b.Property<int?>("group_id")
                         .HasColumnType("int");
 
                     b.Property<string>("last_name")
@@ -447,21 +448,15 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Course", "Course")
                         .WithMany()
-                        .HasForeignKey("course_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("course_id");
 
                     b.HasOne("Feedback_System.Model.Groups", "Groups")
                         .WithMany()
-                        .HasForeignKey("group_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("group_id");
 
                     b.HasOne("Feedback_System.Model.Modules", "Module")
                         .WithMany()
-                        .HasForeignKey("module_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("module_id");
 
                     b.Navigation("Course");
 
@@ -474,15 +469,11 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Course", "Course")
                         .WithMany()
-                        .HasForeignKey("course_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("course_id");
 
                     b.HasOne("Feedback_System.Model.Student", "Student")
                         .WithMany()
-                        .HasForeignKey("student_rollno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("student_rollno");
 
                     b.Navigation("Course");
 
@@ -493,31 +484,29 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Course", "Course")
                         .WithMany()
-                        .HasForeignKey("course_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("course_id");
 
                     b.HasOne("Feedback_System.Model.FeedbackType", "FeedbackType")
                         .WithMany()
-                        .HasForeignKey("feedback_type_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("feedback_type_id");
+
+                    b.HasOne("Feedback_System.Model.Groups", "Groups")
+                        .WithMany()
+                        .HasForeignKey("group_id");
 
                     b.HasOne("Feedback_System.Model.Modules", "Module")
                         .WithMany()
-                        .HasForeignKey("module_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("module_id");
 
                     b.HasOne("Feedback_System.Model.Staff", "Staff")
                         .WithMany()
-                        .HasForeignKey("staff_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("staff_id");
 
                     b.Navigation("Course");
 
                     b.Navigation("FeedbackType");
+
+                    b.Navigation("Groups");
 
                     b.Navigation("Module");
 
@@ -528,15 +517,11 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.FeedbackSubmit", "FeedbackSubmit")
                         .WithMany()
-                        .HasForeignKey("feedback_submit_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("feedback_submit_id");
 
                     b.HasOne("Feedback_System.Model.FeedbackQuestion", "FeedbackQuestion")
                         .WithMany()
-                        .HasForeignKey("question_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("question_id");
 
                     b.Navigation("FeedbackQuestion");
 
@@ -546,10 +531,8 @@ namespace Feedback_System.Migrations
             modelBuilder.Entity("Feedback_System.Model.FeedbackQuestion", b =>
                 {
                     b.HasOne("Feedback_System.Model.FeedbackType", "FeedbackType")
-                        .WithMany()
-                        .HasForeignKey("feedback_type_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithMany("FeedbackQuestions")
+                        .HasForeignKey("feedback_type_id");
 
                     b.Navigation("FeedbackType");
                 });
@@ -558,15 +541,11 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Feedback", "Feedback")
                         .WithMany()
-                        .HasForeignKey("feedback_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("feedback_id");
 
                     b.HasOne("Feedback_System.Model.Student", "Students")
                         .WithMany()
-                        .HasForeignKey("student_rollno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("student_rollno");
 
                     b.Navigation("Feedback");
 
@@ -577,15 +556,11 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Staffroles", "Staffroles")
                         .WithMany()
-                        .HasForeignKey("staffrole_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("staffrole_id");
 
                     b.HasOne("Feedback_System.Model.Student", "Students")
                         .WithMany()
-                        .HasForeignKey("student_rollno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("student_rollno");
 
                     b.Navigation("Staffroles");
 
@@ -594,19 +569,9 @@ namespace Feedback_System.Migrations
 
             modelBuilder.Entity("Feedback_System.Model.Staff", b =>
                 {
-                    b.HasOne("Feedback_System.Model.Groups", "Groups")
-                        .WithMany()
-                        .HasForeignKey("group_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Feedback_System.Model.Staffroles", "Staffroles")
                         .WithMany()
-                        .HasForeignKey("staffrole_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Groups");
+                        .HasForeignKey("staffrole_id");
 
                     b.Navigation("Staffroles");
                 });
@@ -615,11 +580,14 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Groups", "Groups")
                         .WithMany()
-                        .HasForeignKey("group_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("group_id");
 
                     b.Navigation("Groups");
+                });
+
+            modelBuilder.Entity("Feedback_System.Model.FeedbackType", b =>
+                {
+                    b.Navigation("FeedbackQuestions");
                 });
 #pragma warning restore 612, 618
         }

@@ -11,13 +11,13 @@ namespace Feedback_System.Model
 
         [ForeignKey("FeedbackQuestion")]
 
-        public int question_id { get; set; }
+        public int? question_id { get; set; }
 
         public string answer { get; set; }
 
         [ForeignKey("FeedbackSubmit")]
 
-        public int feedback_submit_id { get; set; }
+        public int? feedback_submit_id { get; set; }
 
         // class defined for foreign key relation
 

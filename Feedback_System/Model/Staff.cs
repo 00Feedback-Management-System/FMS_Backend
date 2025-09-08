@@ -9,7 +9,7 @@ namespace Feedback_System.Model
         public int staff_id { get; set; }
 
         [ForeignKey("Staffroles")]
-        public int staffrole_id { get; set; }
+        public int? staffrole_id { get; set; }
 
         public string first_name { get; set; }
 
@@ -19,10 +19,6 @@ namespace Feedback_System.Model
 
         public string password { get; set; }
 
-        [ForeignKey("Groups")]
-
-        public int group_id { get; set; }
-
         public string profile_image { get; set; }
 
         public DateTime login_time { get; set; }
@@ -31,6 +27,6 @@ namespace Feedback_System.Model
 
         public Staffroles Staffroles { get; set; }
 
-        public Groups Groups { get; set; }
+       
     }
 }

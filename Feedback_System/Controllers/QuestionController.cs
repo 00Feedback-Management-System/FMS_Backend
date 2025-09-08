@@ -31,7 +31,7 @@ namespace Feedback_System.Controllers
                         question_id = q.question_id,
                         question = q.question,
                         question_type = q.question_type,
-                        feedback_type_id = q.feedback_type_id,
+                        feedback_type_id = (int)q.feedback_type_id,
                     })
                     .ToList();
 
@@ -61,7 +61,7 @@ namespace Feedback_System.Controllers
                 question_id = FeedbackQutions.question_id,
                 question = FeedbackQutions.question,
                 question_type = FeedbackQutions.question_type,
-                feedback_type_id = FeedbackQutions.feedback_type_id,
+                feedback_type_id = (int)FeedbackQutions.feedback_type_id,
             };
 
             return Ok(FeedbackQutionsDto);

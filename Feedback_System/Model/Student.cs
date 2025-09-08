@@ -19,7 +19,7 @@ namespace Feedback_System.Model
 
         [ForeignKey("Groups")]
 
-        public int group_id { get; set; }
+        public int? group_id { get; set; }
 
         public string profile_image { get; set; }
 

@@ -11,11 +11,11 @@ namespace Feedback_System.Model
 
         [ForeignKey("Course")]
 
-        public int course_id { get; set; }
+        public int? course_id { get; set; }
 
         [ForeignKey("Student")]
 
-        public int student_rollno { get; set; }
+        public int? student_rollno { get; set; }
 
 
         // class defined for foreign key relation

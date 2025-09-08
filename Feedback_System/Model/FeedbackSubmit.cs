@@ -10,11 +10,11 @@ namespace Feedback_System.Model
         public int feedback_submit_id { get; set; }
 
         [ForeignKey("Students")]
-        public int student_rollno { get; set; }
+        public int? student_rollno { get; set; }
 
         [ForeignKey("Feedback")]
 
-        public int feedback_id { get; set; }
+        public int? feedback_id { get; set; }
 
         public DateTime submited_at { get; set; }
 
