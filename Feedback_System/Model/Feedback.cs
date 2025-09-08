@@ -24,13 +24,8 @@ namespace Feedback_System.Model
 
         public int? feedback_type_id { get; set; }
 
-        [ForeignKey("Staff")]
-
-        public int? staff_id { get; set; }
-
-        [ForeignKey("Groups")]
-
-        public int? group_id { get; set; }
+        [ForeignKey("FeebackGroup")]
+        public int? FeedbackGroup_id { get; set; }
         public int session { get; set; }
 
         public DateTime start_date { get; set; }
@@ -48,8 +43,8 @@ namespace Feedback_System.Model
 
         public FeedbackType FeedbackType { get; set; }
 
-        public Staff Staff { get; set; }
+        public FeedbackGroup FeedbackGroup { get; set; }
 
-        public Groups Groups { get; set; }
+       
     }
 }
