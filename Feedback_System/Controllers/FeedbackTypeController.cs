@@ -162,6 +162,14 @@ namespace Feedback_System.Controllers
             if (feedbackType == null)
                 return NotFound(new { Message = "FeedbackType not found" });
 
+            //  Check if this FeedbackType is used in Feedback table
+            bool hasFeedbacks = await _db.Feedback.AnyAsync(f => f.feedback_type_id == id);
+            if (hasFeedbacks)
+            {
+                return BadRequest(new { Message = "Cannot delete this FeedbackType because feedbacks already exist for it." });
+            }
+
+            //  If no feedback exists, delete its questions first
             if (feedbackType.FeedbackQuestions != null && feedbackType.FeedbackQuestions.Any())
             {
                 _db.FeedbackQuestions.RemoveRange(feedbackType.FeedbackQuestions);
@@ -172,5 +180,6 @@ namespace Feedback_System.Controllers
 
             return Ok(new { Message = "FeedbackType deleted successfully" });
         }
+
     }
 }
