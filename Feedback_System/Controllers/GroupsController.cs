@@ -77,5 +77,28 @@ namespace Feedback_System.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("getGroupsByCourse/{id}")]
+        public async Task<ActionResult<IEnumerable<string>>> GetGroupsByCourse(int id)
+        {
+            try
+            {
+                var groups = await _context.CourseGroups
+                .Where(cg => cg.course_id == id)
+                .Include(cg => cg.Groups)
+                .Select(cg => cg.Groups.group_name)
+                .Distinct()
+                .ToListAsync();
+                if (groups == null || groups.Count == 0)
+                {
+                    return NotFound(new {message="No groups found for the given course."});
+                }
+                return Ok(groups);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occured while fetching groups.", details = ex.Message });
+            }
+        }
     }
 }
