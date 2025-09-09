@@ -18,14 +18,13 @@ namespace Feedback_System.DTO
 
         public string status { get; set; }
 
-        public List<GroupDto> Groups { get; set; }
-        // public List<CourseDTO> course { get; set; }
+        
         public string course_name { get; set; }
 
         public string module_name { get; set; }
 
         public string feedback_type_title { get; set; }
-        //  public FeedbackType FeedbackType { get; set; }
+        
 
         public string first_name { get; set; }
 

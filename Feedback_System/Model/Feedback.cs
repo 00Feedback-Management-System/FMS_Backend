@@ -14,15 +14,15 @@ namespace Feedback_System.Model
 
         [ForeignKey("Course")]
 
-        public int? course_id { get; set; }
+        public int course_id { get; set; }
 
         [ForeignKey("Module")]
 
-        public int? module_id { get; set; }
+        public int module_id { get; set; }
 
         [ForeignKey("FeedbackType")]
 
-        public int? feedback_type_id { get; set; }
+        public int feedback_type_id { get; set; }
 
         
         public int session { get; set; }
