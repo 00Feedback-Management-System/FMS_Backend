@@ -24,8 +24,7 @@ namespace Feedback_System.Model
 
         public int? feedback_type_id { get; set; }
 
-        [ForeignKey("FeebackGroup")]
-        public int? FeedbackGroup_id { get; set; }
+        
         public int session { get; set; }
 
         public DateTime start_date { get; set; }
@@ -43,8 +42,11 @@ namespace Feedback_System.Model
 
         public FeedbackType FeedbackType { get; set; }
 
-        public FeedbackGroup FeedbackGroup { get; set; }
+   
 
-       
+        // Navigation property (One-to-Many)
+        public ICollection<FeedbackGroup> FeedbackGroups { get; set; }
+
+
     }
 }
