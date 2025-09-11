@@ -14,9 +14,6 @@ namespace Feedback_System.Model
 
         public int? course_id { get; set; }
 
-        [ForeignKey("Module")]
-        public int? module_id { get; set; }
-
         [ForeignKey("Groups")]
 
         public int? group_id { get; set; }
@@ -27,6 +24,6 @@ namespace Feedback_System.Model
 
         public Groups Groups { get; set; }
 
-        public Modules Module { get; set; }
+
     }
 }
