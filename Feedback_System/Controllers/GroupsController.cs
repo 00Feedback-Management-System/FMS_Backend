@@ -37,6 +37,23 @@ namespace Feedback_System.Controllers
             return group;
         }
 
+        [HttpGet("ByCourse/{courseId}")]
+        public async Task<ActionResult<IEnumerable<Groups>>> GetGroupsByCourse(int courseId)
+        {
+            var groups = await _context.CourseGroups
+                .Include(cg => cg.Groups)
+                .Where(cg => cg.course_id == courseId)
+                .Select(cg => cg.Groups)
+                .ToListAsync();
+
+            if (groups == null || !groups.Any())
+            {
+                return NotFound("No groups found for this course");
+            }
+
+            return groups;
+        }
+
         // POST: api/Groups
         [HttpPost]
         public async Task<ActionResult<Groups>> PostGroup(Groups group)
