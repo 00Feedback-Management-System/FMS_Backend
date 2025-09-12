@@ -63,6 +63,91 @@ namespace Feedback_System.Controllers
 
             return Ok(new { Message = "Feedback scheduled successfully!" });
         }
+        [HttpPut("Update/{feedbackId}")]
+        public async Task<IActionResult> UpdateFeedback(int feedbackId, [FromBody] FeedbackDto dto)
+        {
+            if (dto == null) return BadRequest("Invalid data");
+
+            var feedback = await _context.Feedback
+                .Include(f => f.FeedbackGroups)
+                .FirstOrDefaultAsync(f => f.FeedbackId == feedbackId);
+
+            if (feedback == null)
+                return NotFound(new { Message = "Feedback not found!" });
+
+            
+       
+
+            // ✅ Update feedback fields
+            feedback.course_id = dto.CourseId ?? feedback.course_id;
+            feedback.module_id = dto.ModuleId ?? feedback.module_id;
+            feedback.feedback_type_id = dto.FeedbackTypeId ?? feedback.feedback_type_id;
+            feedback.session = dto.Session;
+            feedback.start_date = dto.StartDate;
+            feedback.end_date = dto.EndDate;
+            feedback.status = dto.Status ?? feedback.status;
+
+            // ✅ Handle FeedbackGroups individually
+            if (dto.FeedbackGroups != null && dto.FeedbackGroups.Any())
+            {
+                var existingGroups = feedback.FeedbackGroups.ToList();
+
+                // Update or Insert
+                foreach (var fgDto in dto.FeedbackGroups)
+                {
+                    if (fgDto.FeedbackGroupId > 0)
+                    {
+                        // Update existing group
+                        var existing = existingGroups.FirstOrDefault(g => g.FeedbackGroupId == fgDto.FeedbackGroupId);
+                        if (existing != null)
+                        {
+                            existing.GroupId = fgDto.GroupId;
+                            existing.StaffId = fgDto.StaffId;
+                        }
+                    }
+                    else
+                    {
+                        // Insert new group
+                        _context.FeedbackGroup.Add(new FeedbackGroup
+                        {
+                            FeedbackId = feedback.FeedbackId,
+                            GroupId = fgDto.GroupId,
+                            StaffId = fgDto.StaffId
+                        });
+                    }
+                }
+
+                // Delete groups not in DTO
+                var dtoIds = dto.FeedbackGroups.Select(g => g.FeedbackGroupId).ToList();
+                var toRemove = existingGroups.Where(g => !dtoIds.Contains(g.FeedbackGroupId)).ToList();
+                if (toRemove.Any())
+                    _context.FeedbackGroup.RemoveRange(toRemove);
+            }
+            else if (dto.StaffId.HasValue) // Single staff case
+            {
+                // Ensure at least one record exists or create one
+                var singleGroup = feedback.FeedbackGroups.FirstOrDefault();
+                if (singleGroup != null)
+                {
+                    singleGroup.StaffId = dto.StaffId;
+                    singleGroup.GroupId = null;
+                }
+                else
+                {
+                    _context.FeedbackGroup.Add(new FeedbackGroup
+                    {
+                        FeedbackId = feedback.FeedbackId,
+                        StaffId = dto.StaffId
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Feedback updated successfully!" });
+        }
+
+
 
         [HttpGet("GetFeedback")]
         public async Task<IActionResult> GetScheduledFeedback()
@@ -100,6 +185,44 @@ namespace Feedback_System.Controllers
 
             return Ok(result);
         }
+
+        // 🔹 GET by FeedbackId
+        [HttpGet("GetByFeedback/{feedbackId}")]
+        public async Task<IActionResult> GetByFeedback(int feedbackId)
+        {
+            var feedback = await _context.Feedback
+                .Include(f => f.FeedbackGroups)
+                    .ThenInclude(fg => fg.Staff)
+                .Include(f => f.FeedbackGroups)
+                    .ThenInclude(fg => fg.Groups)
+                .FirstOrDefaultAsync(f => f.FeedbackId == feedbackId);
+
+            if (feedback == null)
+                return NotFound(new { message = "Feedback not found" });
+
+            var dto = new FeedbackWithGroupsDto
+            {
+                FeedbackId = feedback.FeedbackId,
+                CourseId = feedback.course_id,
+                ModuleId = feedback.module_id,
+                FeedbackTypeId = feedback.feedback_type_id,
+                Session = feedback.session,
+                StartDate = feedback.start_date,
+                EndDate = feedback.end_date,
+                Status = feedback.status,
+                FeedbackGroups = feedback.FeedbackGroups.Select(fg => new FeedbackGroupDto
+                {
+                    FeedbackGroupId = fg.FeedbackGroupId,
+                    // 🔹 If it's a single-group feedback, GroupId should stay null instead of 0
+                    GroupId = fg.GroupId,
+                    StaffId = fg.StaffId ?? 0
+                }).ToList()
+            };
+
+            return Ok(dto);
+        }
+
+
 
         [HttpDelete("DeleteFeedbackGroup/{feedbackGroupId}")]
         public async Task<IActionResult> DeleteFeedbackGroup(int feedbackGroupId)
