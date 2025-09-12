@@ -37,6 +37,20 @@ namespace Feedback_System.Controllers
             return module;
         }
 
+        // ✅ Get all modules by courseId
+        [HttpGet("ByCourse/{courseId}")]
+        public async Task<ActionResult<IEnumerable<Modules>>> GetModulesByCourse(int courseId)
+        {
+            var modules = await _context.Modules
+                .Where(m => m.course_id == courseId)
+                .ToListAsync();
+
+            if (modules == null || !modules.Any())
+                return NotFound(new { message = "No modules found for this course." });
+
+            return Ok(modules);
+        }
+
         // POST: api/Modules
         [HttpPost]
         public async Task<ActionResult<Modules>> PostModule(Modules module)
