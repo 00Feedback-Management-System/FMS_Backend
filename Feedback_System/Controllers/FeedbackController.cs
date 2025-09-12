@@ -170,6 +170,7 @@ namespace Feedback_System.Controllers
                     CourseName = f.Course.course_name,
                     ModuleName = f.Module.module_name,
                     FeedbackTypeName = f.FeedbackType.feedback_type_title,
+                    FeedbackTypeId = f.feedback_type_id,
                     StaffName = fg.Staff != null
                                 ? fg.Staff.first_name + " " + fg.Staff.last_name
                                 : "-",
@@ -275,7 +276,16 @@ namespace Feedback_System.Controllers
             }
         }
 
+        [HttpGet("GetSubmittedFeedbackIdsByStudentId/{studentId}")]
+        public async Task<ActionResult<List<int>>> GetSubmittedFeedbackIdsByStudentId(int studentId)
+        {
+            var submittedFeedbackIds = await _context.FeedbackSubmits
+                                                     .Where(fs => fs.student_rollno == studentId)
+                                                     .Select(fs => fs.feedback_id)
+                                                     .ToListAsync();
 
+            return Ok(submittedFeedbackIds);
+        }
     }
 
 }
