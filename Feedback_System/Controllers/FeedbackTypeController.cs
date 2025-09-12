@@ -71,6 +71,37 @@ namespace Feedback_System.Controllers
             return Ok(result);
         }
 
+        [HttpGet("ByGroup/{groupType}")]
+        public async Task<IActionResult> GetFeedbackTypesByGroup(string groupType)
+        {
+            if (string.IsNullOrEmpty(groupType))
+                return BadRequest("Group type is required.");
+
+            // normalize input (in case user passes "Single"/"MULTIPLE")
+            groupType = groupType.ToLower();
+
+            var feedbackTypes = await _db.FeedbackType
+                .Where(ft => ft.group.ToLower() == groupType)
+                .Select(ft => new
+                {
+                    FeedbackTypeId = ft.feedback_type_id,
+                    Title = ft.feedback_type_title,
+                    Description = ft.feedback_type_description,
+                    IsModule = ft.is_module,
+                    Group = ft.group,
+                    IsStaff = ft.is_staff,
+                    IsSession = ft.is_session,
+                    Behaviour = ft.behaviour
+                })
+                .ToListAsync();
+
+            if (!feedbackTypes.Any())
+                return NotFound($"No feedback types found for group '{groupType}'.");
+
+            return Ok(feedbackTypes);
+        }
+
+
         // POST: api/FeedbackType/CreateFeedbackType
         [Route("CreateFeedbackType")]
         [HttpPost]
