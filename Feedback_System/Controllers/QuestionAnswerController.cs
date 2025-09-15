@@ -90,5 +90,86 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Failed to submit feedback answers", error = ex.Message });
             }
         }
+
+        [HttpGet("GetOverallRating/{feedbackTypeId}")]
+        public async Task<ActionResult<object>> GetOverallRating(int feedbackTypeId)
+        {
+            try
+            {
+
+                var validQuestionIds = await _db.FeedbackQuestions
+                    .Where(q => q.feedback_type_id == feedbackTypeId
+                                && (q.question_type == "rating" || q.question_type == "mcq"))
+                    .Select(q => new { q.question_id, q.question_type })
+                    .ToListAsync();
+
+                if (!validQuestionIds.Any())
+                {
+                    return NotFound(new { message = "No rating or mcq questions found for this feedback type" });
+                }
+
+                var questionTypeDict = validQuestionIds.ToDictionary(q => q.question_id, q => q.question_type);
+
+                //  Get answers for rating + mcq questions
+                var answers = await _db.FeedbackAnswers
+                    .Where(a => questionTypeDict.Keys.Contains(a.question_id ?? 0) && a.answer != null)
+                    .Select(a => new { a.question_id, a.answer })
+                    .ToListAsync();
+
+                var numericAnswers = new List<int>();
+
+                //  Convert answers based on question type
+                foreach (var ans in answers)
+                {
+                    string qType = questionTypeDict[ans.question_id ?? 0];
+
+                    if (qType == "rating")
+                    {
+                        if (int.TryParse(ans.answer, out int ratingVal))
+                        {
+                            numericAnswers.Add(ratingVal);
+                        }
+                    }
+                    else if (qType == "mcq")
+                    {
+
+                        var mapping = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "Excellent", 5 },
+                    { "Good", 4 },
+                    { "Average", 3 },
+                    { "Poor", 2 },
+                    { "Yes", 5 },
+                    { "No", 1 }
+                };
+
+                        if (mapping.TryGetValue(ans.answer.Trim(), out int mcqVal))
+                        {
+                            numericAnswers.Add(mcqVal);
+                        }
+                    }
+                }
+
+                if (!numericAnswers.Any())
+                {
+                    return NotFound(new { message = "No valid numeric answers found for rating/mcq questions" });
+                }
+
+                //  Calculate average
+                double overallRating = Math.Round(numericAnswers.Average(), 2);
+
+                return Ok(new
+                {
+                    feedbackTypeId,
+                    overallRating,
+                    totalResponses = numericAnswers.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
     }
 }
