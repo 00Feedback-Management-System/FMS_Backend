@@ -286,6 +286,81 @@ namespace Feedback_System.Controllers
 
             return Ok(submittedFeedbackIds);
         }
+
+        [HttpGet("GetSubmittedFeedbackHistory/{studentId}")]
+        public async Task<ActionResult<IEnumerable<SubmittedFeedbackHistoryDto>>> GetSubmittedFeedbackHistory(int studentId)
+        {
+            var submittedFeedbacks = await (from fs in _context.FeedbackSubmits
+                                            where fs.student_rollno == studentId
+                                            join fg in _context.FeedbackGroup on fs.feedback_id equals fg.FeedbackGroupId
+                                            join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
+                                            join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
+                                            join c in _context.Courses on f.course_id equals c.course_id
+                                            join m in _context.Modules on f.module_id equals m.module_id
+                                            join s in _context.Staff on fg.StaffId equals s.staff_id
+                                            select new SubmittedFeedbackHistoryDto
+                                            {
+                                                FeedbackGroupId = fg.FeedbackGroupId,
+                                                FeedbackId = f.FeedbackId,
+                                                FeedbackTypeId = ft.feedback_type_id,
+                                                FeedbackTypeName = ft.feedback_type_title,
+                                                CourseName = c.course_name,
+                                                ModuleName = m.module_name,
+                                                StaffName = s.first_name + " " + s.last_name,
+                                                Session = f.session,
+                                                SubmittedAt = fs.submited_at
+                                            }).ToListAsync();
+            if(submittedFeedbacks == null || !submittedFeedbacks.Any())
+            {
+                return Ok(new List<SubmittedFeedbackHistoryDto>());
+            }
+
+            return Ok(submittedFeedbacks);
+        }
+
+        [HttpGet("GetSubmittedFeedbackDetailsForView/{feedbackGroupId}/{studentRollNo}")]
+        public async Task<ActionResult<SubmittedFeedbackDetailsDto>> GetSubmittedFeedbackDetailsForStudentAndForm(int feedbackGroupId, int studentRollNo)
+        {
+            var feedbackDetails = await (from fs in _context.FeedbackSubmits
+                                         where fs.feedback_id == feedbackGroupId && fs.student_rollno == studentRollNo
+                                         join fg in _context.FeedbackGroup on fs.feedback_id equals fg.FeedbackGroupId
+                                         join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
+                                         join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
+                                         join c in _context.Courses on f.course_id equals c.course_id
+                                         join m in _context.Modules on f.module_id equals m.module_id
+                                         join s in _context.Staff on fg.StaffId equals s.staff_id
+                                         select new SubmittedFeedbackDetailsDto
+                                         {
+                                             FeedbackGroupId = fg.FeedbackGroupId,
+                                             FeedbackTypeName = ft.feedback_type_title,
+                                             CourseName = c.course_name,
+                                             ModuleName = m.module_name,
+                                             StaffName = s.first_name + " " + s.last_name,
+                                             Session = f.session,
+                                             Answers = new List<FeedbackAnswerDto>() 
+                                         }).FirstOrDefaultAsync();
+
+            if (feedbackDetails == null)
+            {
+                return NotFound("Feedback details not found.");
+            }
+
+            var answers = await (from a in _context.FeedbackAnswers
+                                 join fs in _context.FeedbackSubmits on a.feedback_submit_id equals fs.feedback_submit_id
+                                 where fs.feedback_id == feedbackGroupId && fs.student_rollno == studentRollNo
+                                 join q in _context.FeedbackQuestions on a.question_id equals q.question_id
+                                 select new FeedbackAnswerDto
+                                 {
+                                     AnswerId = a.answer_id,
+                                     QuestionId = q.question_id,
+                                     QuestionText = q.question,
+                                     AnswerText = a.answer
+                                 }).ToListAsync();
+
+            feedbackDetails.Answers = answers;
+
+            return Ok(feedbackDetails);
+        }
     }
 
 }
