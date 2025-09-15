@@ -3,6 +3,7 @@ using Feedback_System.DTO;
 using Feedback_System.Model;
 using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Feedback_System.Controllers
 {
@@ -154,6 +155,50 @@ namespace Feedback_System.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        // ✅ NEW ENDPOINT: Get scheduled feedback for staff
+        [HttpGet("{staffId}/scheduledFeedback")]
+        public async Task<IActionResult> GetScheduledFeedbackForStaff(int staffId)
+        {
+            var feedbacks = await _db.Feedback
+                .Include(f => f.Course)
+                .Include(f => f.Module)
+                .Include(f => f.FeedbackType)
+                .Include(f => f.FeedbackGroups)
+                    .ThenInclude(fg => fg.Staff)
+                .Include(f => f.FeedbackGroups)
+                    .ThenInclude(fg => fg.Groups)
+                .Where(f => f.FeedbackGroups.Any(fg => fg.StaffId == staffId))
+                .ToListAsync();
+
+            if (!feedbacks.Any())
+                return NotFound(new { message = "No scheduled feedback found for this staff." });
+
+            var result = feedbacks
+                .SelectMany(f => f.FeedbackGroups
+                    .Where(fg => fg.StaffId == staffId)
+                    .Select(fg => new ScheduledFeedbackDto
+                    {
+                        FeedbackId = f.FeedbackId,
+                        CourseName = f.Course.course_name,
+                        ModuleName = f.Module.module_name,
+                        FeedbackTypeName = f.FeedbackType.feedback_type_title,
+                        feedback_type_id = f.FeedbackType.feedback_type_id,
+                        StaffName = fg.Staff != null
+                                    ? fg.Staff.first_name + " " + fg.Staff.last_name
+                                    : "-",
+                        GroupName = fg.Groups != null
+                                    ? fg.Groups.group_name
+                                    : "-",
+                        Session = f.session,
+                        StartDate = f.start_date,
+                        EndDate = f.end_date,
+                        Status = f.status
+                    }))
+                .ToList();
+
+            return Ok(result);
         }
     }
 }

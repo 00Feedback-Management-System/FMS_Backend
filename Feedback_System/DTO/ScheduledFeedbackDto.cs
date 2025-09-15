@@ -3,6 +3,7 @@
     public class ScheduledFeedbackDto
     {
         public int FeedbackId { get; set; }
+        public int feedback_type_id { get; set; }//added for rating it can be caculated by using feedback type
         public string CourseName { get; set; }
         public string ModuleName { get; set; }
         public string FeedbackTypeName { get; set; }

@@ -1,8 +1,9 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Feedback_System.Controllers
 {
@@ -149,16 +150,63 @@ namespace Feedback_System.Controllers
             else if (loginDto.role == "staff")
             {
                 var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
-                if (user == null)
+
+                if (user == null ||
+                    passwordHasher.VerifyHashedPassword(null, user.password, loginDto.password) == PasswordVerificationResult.Failed)
                 {
-                    return NotFound(new { message = "Email not found." });
+                    return Unauthorized(new { message = "Invalid email or password." });
                 }
-                // Hash the new password
-                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
-                user.password = hashedPassword;
-                _context.SaveChanges();
-                return Ok(new { message = "Password reset successful." });
+
+                // fetch role name using staffrole_id
+                var roleName = _context.Staffroles
+                                .Where(r => r.staffrole_id == user.staffrole_id)
+                                .Select(r => r.staffrole_name)
+                                .FirstOrDefault();
+
+                // ✅ fetch scheduled feedback for this staff
+                var scheduledFeedbacks = _context.Feedback
+                    .Include(f => f.Course)
+                    .Include(f => f.Module)
+                    .Include(f => f.FeedbackType)
+                    .Where(f => f.FeedbackGroups.Any(fg => fg.StaffId == user.staff_id))
+                    .Select(f => new {
+                        f.FeedbackId,
+                        Course = f.Course.course_name,
+                        Module = f.Module.module_name,
+                        Type = f.FeedbackType.feedback_type_title,
+                        Date = f.start_date,
+                        Session = f.session
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    message = "Login successful.",
+                    users = new
+                    {
+                        id = user.staff_id,
+                        first_name = user.first_name,
+                        last_name = user.last_name,
+                        email = user.email,
+                        role = roleName,
+                        scheduledFeedback = scheduledFeedbacks
+                    }
+                });
             }
+
+            //else if (loginDto.role == "staff")
+            //{
+            //    var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
+            //    if (user == null)
+            //    {
+            //        return NotFound(new { message = "Email not found." });
+            //    }
+            //    // Hash the new password
+            //    var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+            //    user.password = hashedPassword;
+            //    _context.SaveChanges();
+            //    return Ok(new { message = "Password reset successful." });
+            //}
             else if (loginDto.role == "admin")
             {
                 var user = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
