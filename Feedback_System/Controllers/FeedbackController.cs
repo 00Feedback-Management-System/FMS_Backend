@@ -361,6 +361,83 @@ namespace Feedback_System.Controllers
 
             return Ok(feedbackDetails);
         }
+
+        [HttpGet("GetScheduledFeedbackByStudent/{studentRollNo}")]
+        public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo)
+        {
+            try
+            {
+                var student = await _context.Students
+                                        .Include(s => s.Groups)
+                                        .FirstOrDefaultAsync(s => s.student_rollno == studentRollNo);
+
+                if (student == null)
+                {
+                    return NotFound(new { message = "Student not found" });
+                }
+
+                var studentGroupId = student.group_id;
+                //if (studentGroupId == null)
+                //{
+                //    return BadRequest(new { message = "Student is not assigned to any group" });
+                //}
+
+                var courseGroup = await _context.CourseGroups
+                                    .Include(cg => cg.Course)
+                                    .FirstOrDefaultAsync(cg => cg.group_id == studentGroupId);
+
+                if (courseGroup == null || courseGroup.Course == null)
+                {
+                    return Ok(new List<object>());
+                }
+
+                var studentCourseId = courseGroup.course_id;
+
+                var feedbacks = await _context.Feedback
+                                    .Include(f => f.Course)
+                                    .Include(f => f.Module)
+                                    .Include(f => f.FeedbackType)
+                                    .Include(f => f.FeedbackGroups)
+                                        .ThenInclude(fg => fg.Staff)
+                                    .Include(f => f.FeedbackGroups)
+                                        .ThenInclude(fg => fg.Groups)
+                                    .Where(f => f.course_id == studentCourseId && f.status == "active" &&
+                                                (f.FeedbackGroups.Any(fg => fg.GroupId == studentGroupId) ||
+                                                 f.FeedbackGroups.Any(fg => fg.GroupId == null)))
+                                    .ToListAsync();
+
+                var result = feedbacks
+                    .SelectMany(f => f.FeedbackGroups
+                        .Where(fg => fg.GroupId == studentGroupId || fg.GroupId == null)
+                        .Select(fg => new
+                        {
+                            FeedbackGroupId = fg.FeedbackGroupId,
+                            FeedbackId = f.FeedbackId,
+                            CourseName = f.Course.course_name,
+                            ModuleName = f.Module.module_name,
+                            FeedbackTypeName = f.FeedbackType.feedback_type_title,
+                            FeedbackTypeId = f.feedback_type_id,
+                            StaffName = fg.Staff != null
+                                        ? fg.Staff.first_name + " " + fg.Staff.last_name
+                                        : "-",
+                            GroupName = fg.Groups != null
+                                        ? fg.Groups.group_name
+                                        : "-",
+                            Session = f.session,
+                            StartDate = f.start_date,
+                            EndDate = f.end_date,
+                            Status = f.status
+                        }))
+                    .ToList();
+
+                return Ok(result);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving scheduled feedback", error = ex.Message });
+            }
+        }
     }
 
 }
