@@ -49,6 +49,16 @@ namespace Feedback_System
                               .AllowAnyHeader();
                     });
             });
+            builder.Services.AddDbContext<ApplicationDBContext>(options =>
+                  options.UseSqlServer(
+                  builder.Configuration.GetConnectionString("DefaultConnection"),
+                  sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+                  maxRetryCount: 5,           // Number of retry attempts
+                  maxRetryDelay: TimeSpan.FromSeconds(10),  // Max delay between retries
+                  errorNumbersToAdd: null     // You can add specific SQL error codes if needed
+             )
+             )
+             );
 
             var app = builder.Build();
 

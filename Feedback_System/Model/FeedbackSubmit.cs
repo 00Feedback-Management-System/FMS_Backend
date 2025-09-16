@@ -16,6 +16,10 @@ namespace Feedback_System.Model
 
         public int? feedback_id { get; set; }
 
+        [ForeignKey("FeedbackGroup")]
+
+        public int? feedback_group_id { get; set; }
+
         public DateTime submited_at { get; set; }
 
 
@@ -24,5 +28,7 @@ namespace Feedback_System.Model
         public Student Students { get; set; }
 
         public Feedback Feedback { get; set; }
-    }
+
+        public FeedbackGroup FeedbackGroup { get; set; }
+     }
 }
