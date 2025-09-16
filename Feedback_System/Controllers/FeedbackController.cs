@@ -361,6 +361,149 @@ namespace Feedback_System.Controllers
 
             return Ok(feedbackDetails);
         }
+
+        //get data for admin feedback dashboard and rating
+        [HttpGet("FeedbackDashboard-Rating")]
+        public async Task<IActionResult> GetFeedbackDashboard()
+        {
+            var feedbackSubmits = await _context.FeedbackSubmits
+                .Include(fs => fs.Feedback)
+                    .ThenInclude(f => f.Course)
+                .Include(fs => fs.Feedback)
+                    .ThenInclude(f => f.Module)
+                .Include(fs => fs.Feedback)
+                    .ThenInclude(f => f.FeedbackType)
+                .Include(fs => fs.FeedbackGroup)
+                    .ThenInclude(fg => fg.Staff)
+                .Include(fs => fs.FeedbackGroup)
+                    .ThenInclude(fg => fg.Groups)
+                .ToListAsync();
+
+            // Get all answers with question type for submitted feedbacks
+            var feedbackSubmitIds = feedbackSubmits.Select(fs => fs.feedback_submit_id).ToList();
+
+            var answers = await (from fa in _context.FeedbackAnswers
+                                 join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                 where feedbackSubmitIds.Contains(fa.feedback_submit_id ?? 0)
+                                       && (fq.question_type == "mcq" || fq.question_type == "rating")
+                                 select new
+                                 {
+                                     FeedbackSubmitId = fa.feedback_submit_id,
+                                     QuestionType = fq.question_type,
+                                     AnswerValue = fa.answer
+                                 }).ToListAsync();
+
+            // Helper for MCQ mapping
+            int MapMcqAnswerToNumber(string answer) => answer switch
+            {
+                "Excellent" => 5,
+                "Good" => 4,
+                "Average" => 3,
+                "Poor" => 2,
+                "Very Poor" => 1,
+                _ => 0
+            };
+
+            var result = feedbackSubmits
+                .Select(fs =>
+                {
+                    // Get answers for this submission
+                    var submitAnswers = answers.Where(a => a.FeedbackSubmitId == fs.feedback_submit_id);
+
+                    // Calculate average rating for this submission
+                    var ratingValues = submitAnswers.Select(a =>
+                        a.QuestionType == "mcq"
+                            ? MapMcqAnswerToNumber(a.AnswerValue)
+                            : int.TryParse(a.AnswerValue, out var val) ? val : 0
+                    ).ToList();
+
+                    double staffRating = ratingValues.Any() ? ratingValues.Average() : 0;
+
+                    return new
+                    {
+                        FeedbackGroupId = fs.FeedbackGroup?.FeedbackGroupId,
+                        FeedbackId = fs.Feedback?.FeedbackId,
+                        CourseName = fs.Feedback?.Course?.course_name ?? "-",
+                        ModuleName = fs.Feedback?.Module?.module_name ?? "-",
+                        FeedbackTypeName = fs.Feedback?.FeedbackType?.feedback_type_title ?? "-",
+                        FeedbackTypeId = fs.Feedback?.feedback_type_id,
+                        StaffName = fs.FeedbackGroup?.Staff != null
+                                    ? fs.FeedbackGroup.Staff.first_name + " " + fs.FeedbackGroup.Staff.last_name
+                                    : "-",
+                        //GroupName = fs.FeedbackGroup?.Groups != null
+                        //            ? fs.FeedbackGroup.Groups.group_name
+                        //            : "-",
+                        GroupName = fs.FeedbackGroup?.Groups?.group_name ?? "-",
+                        Session = fs.Feedback?.session,
+                        StartDate = fs.Feedback?.start_date,
+                        EndDate = fs.Feedback?.end_date,
+                        Status = fs.Feedback?.status,
+                        SubmittedAt = fs.submited_at,
+                        StudentRollNo = fs.student_rollno,
+                        StaffRating = staffRating
+                    };
+                })
+                .ToList();
+
+            return Ok(result);
+        }
+
+        //staff rating 
+        [HttpGet("StaffRating")]
+        public async Task<IActionResult> Rating()
+        {
+            // Get all answers with related staff and question type
+            var staffRatings = await (from fa in _context.FeedbackAnswers
+                                      join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                      join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                      join fg in _context.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
+                                      join s in _context.Staff on fg.StaffId equals s.staff_id
+                                      where fq.question_type == "mcq" || fq.question_type == "rating"
+                                      select new
+                                      {
+                                          StaffId = s.staff_id,
+                                          StaffName = s.first_name + " " + s.last_name,
+                                          QuestionType = fq.question_type,
+                                          AnswerValue = fa.answer // For MCQ, map text to number if needed
+                                      })
+                                      .ToListAsync();
+
+            // If MCQ answers are text, map them to numbers here
+            var mappedRatings = staffRatings.Select(x => new
+            {
+                x.StaffId,
+                x.StaffName,
+                Value = x.QuestionType == "mcq"
+                    ? MapMcqAnswerToNumber(x.AnswerValue) // Implement this mapping function
+                    : int.TryParse(x.AnswerValue, out var val) ? val : 0
+            });
+
+            var result = mappedRatings
+                .GroupBy(x => new { x.StaffId, x.StaffName })
+                .Select(g => new
+                {
+                    StaffId = g.Key.StaffId,
+                    StaffName = g.Key.StaffName,
+                    AverageRating = g.Select(x => x.Value).DefaultIfEmpty(0).Average()
+                })
+                .ToList();
+
+            return Ok(result);
+        }
+
+        // Example mapping function for MCQ answers
+        private int MapMcqAnswerToNumber(string answer)
+        {
+            return answer switch
+            {
+                "Excellent" => 5,
+                "Good" => 4,
+                "Average" => 3,
+                "Poor" => 2,
+                "Very Poor" => 1,
+                _ => 0
+            };
+        }
     }
 
 }
