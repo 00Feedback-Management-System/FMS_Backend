@@ -4,6 +4,7 @@ using Feedback_System.Model;
 using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Feedback_System.Controllers
 {
@@ -156,11 +157,11 @@ namespace Feedback_System.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
-        // ✅ NEW ENDPOINT: Get scheduled feedback for staff
+        
         [HttpGet("{staffId}/scheduledFeedback")]
         public async Task<IActionResult> GetScheduledFeedbackForStaff(int staffId)
         {
+           
             var feedbacks = await _db.Feedback
                 .Include(f => f.Course)
                 .Include(f => f.Module)
@@ -175,30 +176,97 @@ namespace Feedback_System.Controllers
             if (!feedbacks.Any())
                 return NotFound(new { message = "No scheduled feedback found for this staff." });
 
+           
+            var staffRatings = await (from fa in _db.FeedbackAnswers
+                                      join fq in _db.FeedbackQuestions on fa.question_id equals fq.question_id
+                                      join fs in _db.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                      join fg in _db.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
+                                      join f in _db.Feedback on fg.FeedbackId equals f.FeedbackId
+                                      join ft in _db.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
+                                      where fg.StaffId == staffId &&
+                                            (fq.question_type == "mcq" || fq.question_type == "rating")
+                                      select new
+                                      {
+                                          f.FeedbackId,
+                                          fs.feedback_submit_id,
+                                          ft.feedback_type_id,
+                                          AnswerValue = fa.answer,
+                                          QuestionType = fq.question_type
+                                      })
+                                      .ToListAsync();
+
+           
+            var mappedRatings = staffRatings.Select(x => new
+            {
+                x.FeedbackId,
+                x.feedback_submit_id,
+                x.feedback_type_id,
+                Value = x.QuestionType == "mcq"
+                    ? MapMcqAnswerToNumber(x.AnswerValue)
+                    : int.TryParse(x.AnswerValue, out var val) ? val : 0
+            }).ToList();
+
+            
+            var feedbackRatings = mappedRatings
+                .GroupBy(x => new { x.FeedbackId, x.feedback_submit_id, x.feedback_type_id })
+                .ToDictionary(
+                    g => new { g.Key.FeedbackId, g.Key.feedback_submit_id, g.Key.feedback_type_id },
+                    g => Math.Round(g.Average(x => x.Value), 2)
+                );
+
+            
             var result = feedbacks
                 .SelectMany(f => f.FeedbackGroups
                     .Where(fg => fg.StaffId == staffId)
-                    .Select(fg => new ScheduledFeedbackDto
-                    {
-                        FeedbackId = f.FeedbackId,
-                        CourseName = f.Course.course_name,
-                        ModuleName = f.Module.module_name,
-                        FeedbackTypeName = f.FeedbackType.feedback_type_title,
-                        feedback_type_id = f.FeedbackType.feedback_type_id,
-                        StaffName = fg.Staff != null
-                                    ? fg.Staff.first_name + " " + fg.Staff.last_name
-                                    : "-",
-                        GroupName = fg.Groups != null
-                                    ? fg.Groups.group_name
-                                    : "-",
-                        Session = f.session,
-                        StartDate = f.start_date,
-                        EndDate = f.end_date,
-                        Status = f.status
-                    }))
+                    .SelectMany(fg => _db.FeedbackSubmits
+                        .Where(fs => fs.feedback_group_id == fg.FeedbackGroupId)
+                        .AsEnumerable() 
+                        .Select(fs => new
+                        {
+                            FeedbackId = f.FeedbackId,
+                            feedback_type_id = f.FeedbackType.feedback_type_id,
+                            CourseName = f.Course.course_name,
+                            ModuleName = f.Module.module_name,
+                            FeedbackTypeName = f.FeedbackType.feedback_type_title,
+                            StaffName = fg.Staff != null
+                                        ? fg.Staff.first_name + " " + fg.Staff.last_name
+                                        : "-",
+                            GroupName = fg.Groups != null
+                                        ? fg.Groups.group_name
+                                        : "-",
+                            Session = f.session,
+                            StartDate = f.start_date,
+                            EndDate = f.end_date,
+                            Status = f.status,
+                            Rating = feedbackRatings.TryGetValue(
+                                new { f.FeedbackId, fs.feedback_submit_id, f.FeedbackType.feedback_type_id },
+                                out var avg) ? avg : 0
+                        })))
                 .ToList();
 
             return Ok(result);
         }
+
+        
+        private int MapMcqAnswerToNumber(string answer)
+        {
+            if (string.IsNullOrWhiteSpace(answer))
+                return 0;
+
+            return answer.Trim().ToLower() switch
+            {
+                "excellent" => 5,
+                "good" => 4,
+                "average" => 3,
+                "poor" => 2,
+                "very poor" => 1,
+                "yes" => 5,
+                "no" => 1,
+                _ => int.TryParse(answer, out var val) ? val : 0
+            };
+        }
+
+        
     }
 }
+
