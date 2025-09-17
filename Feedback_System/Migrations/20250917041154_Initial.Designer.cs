@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Feedback_System.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20250908102849_feedbackgroup")]
-    partial class feedbackgroup
+    [Migration("20250917041154_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -69,16 +69,11 @@ namespace Feedback_System.Migrations
                     b.Property<int?>("group_id")
                         .HasColumnType("int");
 
-                    b.Property<int?>("module_id")
-                        .HasColumnType("int");
-
                     b.HasKey("course_group_id");
 
                     b.HasIndex("course_id");
 
                     b.HasIndex("group_id");
-
-                    b.HasIndex("module_id");
 
                     b.ToTable("CourseGroups");
                 });
@@ -115,19 +110,16 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FeedbackId"));
 
-                    b.Property<int?>("FeedbackGroup_id")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("course_id")
+                    b.Property<int>("course_id")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("end_date")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("feedback_type_id")
+                    b.Property<int>("feedback_type_id")
                         .HasColumnType("int");
 
-                    b.Property<int?>("module_id")
+                    b.Property<int>("module_id")
                         .HasColumnType("int");
 
                     b.Property<int>("session")
@@ -197,9 +189,7 @@ namespace Feedback_System.Migrations
 
                     b.HasKey("FeedbackGroupId");
 
-                    b.HasIndex("FeedbackId")
-                        .IsUnique()
-                        .HasFilter("[FeedbackId] IS NOT NULL");
+                    b.HasIndex("FeedbackId");
 
                     b.HasIndex("GroupId");
 
@@ -242,6 +232,9 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("feedback_submit_id"));
 
+                    b.Property<int?>("feedback_group_id")
+                        .HasColumnType("int");
+
                     b.Property<int?>("feedback_id")
                         .HasColumnType("int");
 
@@ -252,6 +245,8 @@ namespace Feedback_System.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("feedback_submit_id");
+
+                    b.HasIndex("feedback_group_id");
 
                     b.HasIndex("feedback_id");
 
@@ -325,6 +320,9 @@ namespace Feedback_System.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("module_id"));
 
+                    b.Property<int?>("course_id")
+                        .HasColumnType("int");
+
                     b.Property<int>("duration")
                         .HasColumnType("int");
 
@@ -333,6 +331,8 @@ namespace Feedback_System.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("module_id");
+
+                    b.HasIndex("course_id");
 
                     b.ToTable("Modules");
                 });
@@ -477,15 +477,9 @@ namespace Feedback_System.Migrations
                         .WithMany()
                         .HasForeignKey("group_id");
 
-                    b.HasOne("Feedback_System.Model.Modules", "Module")
-                        .WithMany()
-                        .HasForeignKey("module_id");
-
                     b.Navigation("Course");
 
                     b.Navigation("Groups");
-
-                    b.Navigation("Module");
                 });
 
             modelBuilder.Entity("Feedback_System.Model.CourseStudent", b =>
@@ -507,15 +501,21 @@ namespace Feedback_System.Migrations
                 {
                     b.HasOne("Feedback_System.Model.Course", "Course")
                         .WithMany()
-                        .HasForeignKey("course_id");
+                        .HasForeignKey("course_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Feedback_System.Model.FeedbackType", "FeedbackType")
                         .WithMany()
-                        .HasForeignKey("feedback_type_id");
+                        .HasForeignKey("feedback_type_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Feedback_System.Model.Modules", "Module")
                         .WithMany()
-                        .HasForeignKey("module_id");
+                        .HasForeignKey("module_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Course");
 
@@ -542,8 +542,8 @@ namespace Feedback_System.Migrations
             modelBuilder.Entity("Feedback_System.Model.FeedbackGroup", b =>
                 {
                     b.HasOne("Feedback_System.Model.Feedback", "Feedback")
-                        .WithOne("FeedbackGroup")
-                        .HasForeignKey("Feedback_System.Model.FeedbackGroup", "FeedbackId");
+                        .WithMany("FeedbackGroups")
+                        .HasForeignKey("FeedbackId");
 
                     b.HasOne("Feedback_System.Model.Groups", "Groups")
                         .WithMany()
@@ -571,6 +571,10 @@ namespace Feedback_System.Migrations
 
             modelBuilder.Entity("Feedback_System.Model.FeedbackSubmit", b =>
                 {
+                    b.HasOne("Feedback_System.Model.FeedbackGroup", "FeedbackGroup")
+                        .WithMany()
+                        .HasForeignKey("feedback_group_id");
+
                     b.HasOne("Feedback_System.Model.Feedback", "Feedback")
                         .WithMany()
                         .HasForeignKey("feedback_id");
@@ -581,7 +585,18 @@ namespace Feedback_System.Migrations
 
                     b.Navigation("Feedback");
 
+                    b.Navigation("FeedbackGroup");
+
                     b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("Feedback_System.Model.Modules", b =>
+                {
+                    b.HasOne("Feedback_System.Model.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("course_id");
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("Feedback_System.Model.RoleAccess", b =>
@@ -619,8 +634,7 @@ namespace Feedback_System.Migrations
 
             modelBuilder.Entity("Feedback_System.Model.Feedback", b =>
                 {
-                    b.Navigation("FeedbackGroup")
-                        .IsRequired();
+                    b.Navigation("FeedbackGroups");
                 });
 
             modelBuilder.Entity("Feedback_System.Model.FeedbackType", b =>

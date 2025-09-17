@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Feedback_System.Migrations
 {
     /// <inheritdoc />
-    public partial class Updatedatabase : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,20 +62,6 @@ namespace Feedback_System.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Modules",
-                columns: table => new
-                {
-                    module_id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    module_name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    duration = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Modules", x => x.module_id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Staffroles",
                 columns: table => new
                 {
@@ -86,6 +72,26 @@ namespace Feedback_System.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Staffroles", x => x.staffrole_id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Modules",
+                columns: table => new
+                {
+                    module_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    course_id = table.Column<int>(type: "int", nullable: true),
+                    module_name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    duration = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Modules", x => x.module_id);
+                    table.ForeignKey(
+                        name: "FK_Modules_Courses_course_id",
+                        column: x => x.course_id,
+                        principalTable: "Courses",
+                        principalColumn: "course_id");
                 });
 
             migrationBuilder.CreateTable(
@@ -106,6 +112,30 @@ namespace Feedback_System.Migrations
                         column: x => x.feedback_type_id,
                         principalTable: "FeedbackType",
                         principalColumn: "feedback_type_id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CourseGroups",
+                columns: table => new
+                {
+                    course_group_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    course_id = table.Column<int>(type: "int", nullable: true),
+                    group_id = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CourseGroups", x => x.course_group_id);
+                    table.ForeignKey(
+                        name: "FK_CourseGroups_Courses_course_id",
+                        column: x => x.course_id,
+                        principalTable: "Courses",
+                        principalColumn: "course_id");
+                    table.ForeignKey(
+                        name: "FK_CourseGroups_Groups_group_id",
+                        column: x => x.group_id,
+                        principalTable: "Groups",
+                        principalColumn: "group_id");
                 });
 
             migrationBuilder.CreateTable(
@@ -133,36 +163,6 @@ namespace Feedback_System.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CourseGroups",
-                columns: table => new
-                {
-                    course_group_id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    course_id = table.Column<int>(type: "int", nullable: true),
-                    module_id = table.Column<int>(type: "int", nullable: true),
-                    group_id = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CourseGroups", x => x.course_group_id);
-                    table.ForeignKey(
-                        name: "FK_CourseGroups_Courses_course_id",
-                        column: x => x.course_id,
-                        principalTable: "Courses",
-                        principalColumn: "course_id");
-                    table.ForeignKey(
-                        name: "FK_CourseGroups_Groups_group_id",
-                        column: x => x.group_id,
-                        principalTable: "Groups",
-                        principalColumn: "group_id");
-                    table.ForeignKey(
-                        name: "FK_CourseGroups_Modules_module_id",
-                        column: x => x.module_id,
-                        principalTable: "Modules",
-                        principalColumn: "module_id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Staff",
                 columns: table => new
                 {
@@ -184,6 +184,43 @@ namespace Feedback_System.Migrations
                         column: x => x.staffrole_id,
                         principalTable: "Staffroles",
                         principalColumn: "staffrole_id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Feedback",
+                columns: table => new
+                {
+                    feedback_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    course_id = table.Column<int>(type: "int", nullable: false),
+                    module_id = table.Column<int>(type: "int", nullable: false),
+                    feedback_type_id = table.Column<int>(type: "int", nullable: false),
+                    session = table.Column<int>(type: "int", nullable: false),
+                    start_date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    end_date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Feedback", x => x.feedback_id);
+                    table.ForeignKey(
+                        name: "FK_Feedback_Courses_course_id",
+                        column: x => x.course_id,
+                        principalTable: "Courses",
+                        principalColumn: "course_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Feedback_FeedbackType_feedback_type_id",
+                        column: x => x.feedback_type_id,
+                        principalTable: "FeedbackType",
+                        principalColumn: "feedback_type_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Feedback_Modules_module_id",
+                        column: x => x.module_id,
+                        principalTable: "Modules",
+                        principalColumn: "module_id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -237,47 +274,31 @@ namespace Feedback_System.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Feedback",
+                name: "FeedbackGroup",
                 columns: table => new
                 {
-                    feedback_id = table.Column<int>(type: "int", nullable: false)
+                    FeedbackGroupId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    course_id = table.Column<int>(type: "int", nullable: true),
-                    module_id = table.Column<int>(type: "int", nullable: true),
-                    feedback_type_id = table.Column<int>(type: "int", nullable: true),
-                    staff_id = table.Column<int>(type: "int", nullable: true),
-                    group_id = table.Column<int>(type: "int", nullable: true),
-                    session = table.Column<int>(type: "int", nullable: false),
-                    start_date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    end_date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    FeedbackId = table.Column<int>(type: "int", nullable: true),
+                    GroupId = table.Column<int>(type: "int", nullable: true),
+                    StaffId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Feedback", x => x.feedback_id);
+                    table.PrimaryKey("PK_FeedbackGroup", x => x.FeedbackGroupId);
                     table.ForeignKey(
-                        name: "FK_Feedback_Courses_course_id",
-                        column: x => x.course_id,
-                        principalTable: "Courses",
-                        principalColumn: "course_id");
+                        name: "FK_FeedbackGroup_Feedback_FeedbackId",
+                        column: x => x.FeedbackId,
+                        principalTable: "Feedback",
+                        principalColumn: "feedback_id");
                     table.ForeignKey(
-                        name: "FK_Feedback_FeedbackType_feedback_type_id",
-                        column: x => x.feedback_type_id,
-                        principalTable: "FeedbackType",
-                        principalColumn: "feedback_type_id");
-                    table.ForeignKey(
-                        name: "FK_Feedback_Groups_group_id",
-                        column: x => x.group_id,
+                        name: "FK_FeedbackGroup_Groups_GroupId",
+                        column: x => x.GroupId,
                         principalTable: "Groups",
                         principalColumn: "group_id");
                     table.ForeignKey(
-                        name: "FK_Feedback_Modules_module_id",
-                        column: x => x.module_id,
-                        principalTable: "Modules",
-                        principalColumn: "module_id");
-                    table.ForeignKey(
-                        name: "FK_Feedback_Staff_staff_id",
-                        column: x => x.staff_id,
+                        name: "FK_FeedbackGroup_Staff_StaffId",
+                        column: x => x.StaffId,
                         principalTable: "Staff",
                         principalColumn: "staff_id");
                 });
@@ -290,11 +311,17 @@ namespace Feedback_System.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     student_rollno = table.Column<int>(type: "int", nullable: true),
                     feedback_id = table.Column<int>(type: "int", nullable: true),
+                    feedback_group_id = table.Column<int>(type: "int", nullable: true),
                     submited_at = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FeedbackSubmits", x => x.feedback_submit_id);
+                    table.ForeignKey(
+                        name: "FK_FeedbackSubmits_FeedbackGroup_feedback_group_id",
+                        column: x => x.feedback_group_id,
+                        principalTable: "FeedbackGroup",
+                        principalColumn: "FeedbackGroupId");
                     table.ForeignKey(
                         name: "FK_FeedbackSubmits_Feedback_feedback_id",
                         column: x => x.feedback_id,
@@ -343,11 +370,6 @@ namespace Feedback_System.Migrations
                 column: "group_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CourseGroups_module_id",
-                table: "CourseGroups",
-                column: "module_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_CourseStudents_course_id",
                 table: "CourseStudents",
                 column: "course_id");
@@ -368,19 +390,9 @@ namespace Feedback_System.Migrations
                 column: "feedback_type_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Feedback_group_id",
-                table: "Feedback",
-                column: "group_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Feedback_module_id",
                 table: "Feedback",
                 column: "module_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Feedback_staff_id",
-                table: "Feedback",
-                column: "staff_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FeedbackAnswers_feedback_submit_id",
@@ -393,9 +405,29 @@ namespace Feedback_System.Migrations
                 column: "question_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FeedbackGroup_FeedbackId",
+                table: "FeedbackGroup",
+                column: "FeedbackId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FeedbackGroup_GroupId",
+                table: "FeedbackGroup",
+                column: "GroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FeedbackGroup_StaffId",
+                table: "FeedbackGroup",
+                column: "StaffId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FeedbackQuestions_feedback_type_id",
                 table: "FeedbackQuestions",
                 column: "feedback_type_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FeedbackSubmits_feedback_group_id",
+                table: "FeedbackSubmits",
+                column: "feedback_group_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FeedbackSubmits_feedback_id",
@@ -406,6 +438,11 @@ namespace Feedback_System.Migrations
                 name: "IX_FeedbackSubmits_student_rollno",
                 table: "FeedbackSubmits",
                 column: "student_rollno");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Modules_course_id",
+                table: "Modules",
+                column: "course_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RoleAccesses_staffrole_id",
@@ -450,19 +487,13 @@ namespace Feedback_System.Migrations
                 name: "FeedbackSubmits");
 
             migrationBuilder.DropTable(
-                name: "Feedback");
+                name: "FeedbackGroup");
 
             migrationBuilder.DropTable(
                 name: "Students");
 
             migrationBuilder.DropTable(
-                name: "Courses");
-
-            migrationBuilder.DropTable(
-                name: "FeedbackType");
-
-            migrationBuilder.DropTable(
-                name: "Modules");
+                name: "Feedback");
 
             migrationBuilder.DropTable(
                 name: "Staff");
@@ -471,7 +502,16 @@ namespace Feedback_System.Migrations
                 name: "Groups");
 
             migrationBuilder.DropTable(
+                name: "FeedbackType");
+
+            migrationBuilder.DropTable(
+                name: "Modules");
+
+            migrationBuilder.DropTable(
                 name: "Staffroles");
+
+            migrationBuilder.DropTable(
+                name: "Courses");
         }
     }
 }
