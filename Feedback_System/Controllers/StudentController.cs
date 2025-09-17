@@ -3,6 +3,7 @@ using Feedback_System.DTO;
 using Feedback_System.Model;
 using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Feedback_System.Controllers
 {
@@ -101,14 +102,14 @@ namespace Feedback_System.Controllers
 
             var student = new Student
             {
-                student_rollno = studentDto.student_rollno,
+              
                 first_name = studentDto.first_name,
                 last_name = studentDto.last_name,
                 email = studentDto.email,
                 password = hashedPassword,
                 group_id = studentDto.group_id,
                 profile_image = studentDto.profile_image,
-                login_time = studentDto.login_time
+                login_time = DateTime.Now
             };
 
             _db.Students.Add(student);
@@ -151,7 +152,7 @@ namespace Feedback_System.Controllers
             studentFromDb.password = studentDto.password;
             studentFromDb.group_id = studentDto.group_id;
             studentFromDb.profile_image = studentDto.profile_image;
-            studentFromDb.login_time = studentDto.login_time;
+            studentFromDb.login_time = (DateTime)studentDto.login_time;
 
             _db.Students.Update(studentFromDb);
             _db.SaveChanges();
@@ -193,6 +194,134 @@ namespace Feedback_System.Controllers
 
             return Ok(new { message = "Login successful", student_rollno = student.student_rollno });
         }
+
+        [HttpGet("Submitted/{feedbackGroupId}")]
+        public async Task<IActionResult> GetSubmittedStudents(int feedbackGroupId)
+        {
+            if (feedbackGroupId <= 0)
+                return BadRequest("Invalid Feedback Group Id");
+
+            // Find feedback group
+            var feedbackGroup = await _db.FeedbackGroup
+                .FirstOrDefaultAsync(fg => fg.FeedbackGroupId == feedbackGroupId);
+
+            if (feedbackGroup == null)
+                return NotFound("Feedback group not found.");
+
+            IQueryable<FeedbackSubmit> query = _db.FeedbackSubmits
+                .Where(fs => fs.feedback_group_id == feedbackGroupId)
+                .Include(fs => fs.Students)
+                .ThenInclude(s => s.Groups);  // ✅ Include Group for group_name
+
+            // ✅ If group exists → filter based on group
+            if (feedbackGroup.GroupId.HasValue)
+            {
+                int groupId = feedbackGroup.GroupId.Value;
+                query = query.Where(fs => fs.Students.group_id == groupId);
+            }
+
+            // Final projection with group_name
+            var submittedStudents = await query
+                .Select(fs => new
+                {
+                    fs.Students.student_rollno,
+                    fs.Students.first_name,
+                    fs.Students.last_name,
+                    fs.Students.email,
+                    GroupName = fs.Students.Groups.group_name   // ✅ group name
+                })
+                .ToListAsync();
+
+            return Ok(submittedStudents);
+        }
+
+
+        [HttpGet("NotSubmitted/{feedbackGroupId}")]
+        public async Task<IActionResult> GetNotSubmittedStudents(int feedbackGroupId)
+        {
+            if (feedbackGroupId <= 0)
+                return BadRequest("Invalid Feedback Group Id");
+
+            // Find feedback group with feedback details
+            var feedbackGroup = await _db.FeedbackGroup
+                .Include(fg => fg.Feedback)
+                .FirstOrDefaultAsync(fg => fg.FeedbackGroupId == feedbackGroupId);
+
+            if (feedbackGroup == null)
+                return NotFound("Feedback group not found.");
+
+            int courseId = feedbackGroup.Feedback.course_id;
+
+            // Get all submitted student roll numbers for this feedback group
+            var submittedStudentIds = await _db.FeedbackSubmits
+                .Where(fs => fs.feedback_group_id == feedbackGroupId)
+                .Select(fs => fs.student_rollno)
+                .ToListAsync();
+
+            // ✅ Start with CourseStudents and include Student + Group
+            var courseStudentsQuery = _db.CourseStudents
+                .Where(cs => cs.course_id == courseId)
+                .Include(cs => cs.Student)
+                .ThenInclude(s => s.Groups)  // ✅ Group included here
+                .Select(cs => cs.Student);
+
+            // If groupId exists, further filter by group
+            if (feedbackGroup.GroupId.HasValue)
+            {
+                int groupId = feedbackGroup.GroupId.Value;
+                courseStudentsQuery = courseStudentsQuery.Where(s => s.group_id == groupId);
+            }
+
+            // Exclude submitted students and project with GroupName
+            var notSubmittedStudents = await courseStudentsQuery
+                .Where(s => !submittedStudentIds.Contains(s.student_rollno))
+                .Select(s => new
+                {
+                    s.student_rollno,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    GroupName = s.Groups.group_name   // ✅ group name here
+                })
+                .ToListAsync();
+
+            return Ok(notSubmittedStudents);
+        }
+
+
+
+        [HttpGet("FeedbackSubmit/{feedbackGroupId}")]
+        public async Task<IActionResult> GetFeedbackSummary(int feedbackGroupId)
+        {
+            var submittedCount = await _db.FeedbackSubmits
+                .CountAsync(fs => fs.feedback_group_id == feedbackGroupId);
+
+            // get courseId via feedback
+            var feedbackGroup = await _db.FeedbackGroup
+                .Include(fg => fg.Feedback)
+                .FirstOrDefaultAsync(fg => fg.FeedbackGroupId == feedbackGroupId);
+
+            if (feedbackGroup == null) return NotFound("FeedbackGroup not found");
+
+            int courseId = feedbackGroup.Feedback.course_id;
+
+            // total enrolled students for course (and group if exists)
+            var courseStudents = _db.CourseStudents.Where(cs => cs.course_id == courseId).Select(cs => cs.Student);
+            if (feedbackGroup.GroupId.HasValue)
+            {
+                int groupId = feedbackGroup.GroupId.Value;
+                courseStudents = courseStudents.Where(s => s.group_id == groupId);
+            }
+
+            var totalStudents = await courseStudents.CountAsync();
+            var remainingCount = totalStudents - submittedCount;
+
+            return Ok(new { submittedCount, remainingCount });
+        }
+
+
+
+
 
     }
 }
