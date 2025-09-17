@@ -4,6 +4,7 @@ using Feedback_System.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq;
 
 namespace Feedback_System.Controllers
 {
@@ -582,6 +583,94 @@ namespace Feedback_System.Controllers
                 _ => 0
             };
         }
+        [HttpGet("CourseWiseReportWithRating")]
+        public async Task<IActionResult> GetCourseWiseReportWithRating()
+        {
+            try
+            {
+                
+                var feedbacks = await _context.Feedback
+                    .Include(f => f.Course)
+                    .Include(f => f.Module)
+                    .Include(f => f.FeedbackType)
+                    .ToListAsync();
+
+                if (!feedbacks.Any())
+                    return NotFound(new { message = "No feedback records found" });
+
+               
+                var answers = await (from fa in _context.FeedbackAnswers
+                                     join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                     join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                     where fq.question_type == "mcq" || fq.question_type == "rating"
+                                     select new
+                                     {
+                                         FeedbackId = fs.feedback_id, // already int
+                                         QuestionType = fq.question_type,
+                                         AnswerValue = fa.answer
+                                     }).ToListAsync();
+
+               
+                int MapMcqAnswerToNumber(string answer) => answer switch
+                {
+                    "Excellent" => 5,
+                    "Good" => 4,
+                    "Average" => 3,
+                    "Poor" => 2,
+                    "Very Poor" => 1,
+                    _ => 0
+                };
+
+              
+                var courseWiseReport = feedbacks
+                    .GroupBy(f => f.Course)
+                    .Select(courseGroup =>
+                    {
+                       
+                        var courseFeedbackIds = courseGroup
+                            .Select(f => f.FeedbackId)
+                            .ToList();
+
+                      
+                        var ratingValues = answers
+                            .Where(a => courseFeedbackIds.Contains((int)a.FeedbackId))
+                            .Select(a => a.QuestionType == "mcq"
+                                ? MapMcqAnswerToNumber(a.AnswerValue)
+                                : int.TryParse(a.AnswerValue, out var val) ? val : 0)
+                            .ToList();
+
+                        double avgRating = ratingValues.Any() ? ratingValues.Average() : 0;
+
+                        return new
+                        {
+                            CourseName = courseGroup.Key.course_name,
+                            CourseAverageRating = Math.Round(avgRating, 2),
+                            Modules = courseGroup
+                                .GroupBy(f => f.Module)
+                                .Select(moduleGroup => new
+                                {
+                                    ModuleName = moduleGroup.Key.module_name,
+                                    FeedbackTypes = moduleGroup
+                                        .Select(f => f.FeedbackType.feedback_type_title)
+                                        .Distinct()
+                                        .ToList()
+                                })
+                                .ToList()
+                        };
+                    })
+                    .ToList();
+
+                return Ok(courseWiseReport);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error generating report", error = ex.Message });
+            }
+        }
+
+
+
+
     }
 
 }
