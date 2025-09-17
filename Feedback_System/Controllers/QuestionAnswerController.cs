@@ -60,6 +60,7 @@ namespace Feedback_System.Controllers
                 {
                     student_rollno = feedbackSubmitDto.studentId,
                     feedback_id = feedbackSubmitDto.feedbackId,
+                    feedback_group_id = feedbackSubmitDto.feedbackGroupId,
                     submited_at = DateTime.UtcNow
                 };
 
