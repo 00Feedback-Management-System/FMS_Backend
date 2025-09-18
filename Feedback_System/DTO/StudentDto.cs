@@ -2,7 +2,7 @@
 {
     public class StudentDto
     {
-        public int student_rollno { get; set; }
+        public int? student_rollno { get; set; }
 
         public string first_name { get; set; }
 
@@ -15,6 +15,6 @@
         public int group_id { get; set; }
 
         public string profile_image { get; set; }
-        public DateTime login_time { get; set; }
+        public DateTime? login_time { get; set; }
     }
 }

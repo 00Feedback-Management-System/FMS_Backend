@@ -4,6 +4,7 @@ using Feedback_System.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq;
 
 namespace Feedback_System.Controllers
 {
@@ -281,39 +282,42 @@ namespace Feedback_System.Controllers
         {
             var submittedFeedbackIds = await _context.FeedbackSubmits
                                                      .Where(fs => fs.student_rollno == studentId)
-                                                     .Select(fs => fs.feedback_id)
+                                                     .Select(fs => fs.feedback_group_id)
                                                      .ToListAsync();
 
             return Ok(submittedFeedbackIds);
         }
 
         [HttpGet("GetSubmittedFeedbackHistory/{studentId}")]
-        public async Task<ActionResult<IEnumerable<SubmittedFeedbackHistoryDto>>> GetSubmittedFeedbackHistory(int studentId)
+        public async Task<ActionResult> GetSubmittedFeedbackHistory(int studentId)
         {
+            var student = await _context.Students.FirstOrDefaultAsync(s => s.student_rollno == studentId);
+            if (student == null)
+            {
+                return NotFound(new { message = "Student not found." });
+            }
+
             var submittedFeedbacks = await (from fs in _context.FeedbackSubmits
-                                            where fs.student_rollno == studentId
-                                            join fg in _context.FeedbackGroup on fs.feedback_id equals fg.FeedbackGroupId
+                                            join fg in _context.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
                                             join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
                                             join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
                                             join c in _context.Courses on f.course_id equals c.course_id
                                             join m in _context.Modules on f.module_id equals m.module_id
                                             join s in _context.Staff on fg.StaffId equals s.staff_id
-                                            select new SubmittedFeedbackHistoryDto
+                                            where fs.student_rollno == studentId || fg.GroupId == student.group_id
+                                            select new
                                             {
-                                                FeedbackGroupId = fg.FeedbackGroupId,
-                                                FeedbackId = f.FeedbackId,
-                                                FeedbackTypeId = ft.feedback_type_id,
-                                                FeedbackTypeName = ft.feedback_type_title,
-                                                CourseName = c.course_name,
-                                                ModuleName = m.module_name,
-                                                StaffName = s.first_name + " " + s.last_name,
-                                                Session = f.session,
-                                                SubmittedAt = fs.submited_at
+                                                feedbackGroupId = fg.FeedbackGroupId,
+                                                feedbackId = f.FeedbackId,
+                                                feedbackTypeId = ft.feedback_type_id,
+                                                feedbackTypeName = ft.feedback_type_title,
+                                                courseName = c.course_name,
+                                                moduleName = m.module_name,
+                                                staffName = s.first_name + " " + s.last_name,
+                                                session = f.session,
+                                                submittedAt = fs.submited_at,
+                                                groupName = fg.GroupId
                                             }).ToListAsync();
-            if(submittedFeedbacks == null || !submittedFeedbacks.Any())
-            {
-                return Ok(new List<SubmittedFeedbackHistoryDto>());
-            }
 
             return Ok(submittedFeedbacks);
         }
@@ -322,7 +326,7 @@ namespace Feedback_System.Controllers
         public async Task<ActionResult<SubmittedFeedbackDetailsDto>> GetSubmittedFeedbackDetailsForStudentAndForm(int feedbackGroupId, int studentRollNo)
         {
             var feedbackDetails = await (from fs in _context.FeedbackSubmits
-                                         where fs.feedback_id == feedbackGroupId && fs.student_rollno == studentRollNo
+                                         where fs.feedback_group_id == feedbackGroupId && fs.student_rollno == studentRollNo
                                          join fg in _context.FeedbackGroup on fs.feedback_id equals fg.FeedbackGroupId
                                          join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
                                          join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
@@ -347,7 +351,7 @@ namespace Feedback_System.Controllers
 
             var answers = await (from a in _context.FeedbackAnswers
                                  join fs in _context.FeedbackSubmits on a.feedback_submit_id equals fs.feedback_submit_id
-                                 where fs.feedback_id == feedbackGroupId && fs.student_rollno == studentRollNo
+                                 where fs.feedback_group_id == feedbackGroupId && fs.student_rollno == studentRollNo
                                  join q in _context.FeedbackQuestions on a.question_id equals q.question_id
                                  select new FeedbackAnswerDto
                                  {
@@ -654,7 +658,6 @@ namespace Feedback_System.Controllers
                 _ => 0
             };
         }
-
         //faculty feedback summary
         [HttpPost("FacultyFeedbackSummary")]
         public async Task<IActionResult> FacultyFeedbackSummary([FromBody] FacultyFeedbackSummaryDto request)
@@ -679,7 +682,7 @@ namespace Feedback_System.Controllers
                 where c.course_name == request.course_name
                       && m.module_name == request.module_name
                         && (s.first_name + " " + s.last_name) == request.staff_name   // ✅ staff full name
-        
+
                 select fg
             ).ToListAsync();
 
@@ -689,8 +692,8 @@ namespace Feedback_System.Controllers
 
             var feedbackGroupIds = feedbackGroups.Select(fg => fg.FeedbackGroupId).ToList();
             // 3. Submitted & Remaining count
-           // var submittedCount = await _context.FeedbackSubmits
-             //   .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
+            // var submittedCount = await _context.FeedbackSubmits
+            //   .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
 
             // ✅ Use Students table directly
             //var groupStudentCount = await (from st in _context.Students
@@ -811,7 +814,6 @@ namespace Feedback_System.Controllers
                 })
             });
         }
-
     }
 
 }
