@@ -366,9 +366,8 @@ namespace Feedback_System.Controllers
             return Ok(feedbackDetails);
         }
 
-        //schedule list student
         [HttpGet("GetScheduledFeedbackByStudent/{studentRollNo}")]
-        public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo)
+        public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo, [FromQuery] int page, [FromQuery] int pageSize)
         {
             try
             {
@@ -398,44 +397,48 @@ namespace Feedback_System.Controllers
 
                 var studentCourseId = courseGroup.course_id;
 
-                var feedbacks = await _context.Feedback
-                                    .Include(f => f.Course)
-                                    .Include(f => f.Module)
-                                    .Include(f => f.FeedbackType)
-                                    .Include(f => f.FeedbackGroups)
-                                        .ThenInclude(fg => fg.Staff)
-                                    .Include(f => f.FeedbackGroups)
-                                        .ThenInclude(fg => fg.Groups)
-                                    .Where(f => f.course_id == studentCourseId && f.status == "active" &&
-                                                (f.FeedbackGroups.Any(fg => fg.GroupId == studentGroupId) ||
-                                                 f.FeedbackGroups.Any(fg => fg.GroupId == null)))
+                var submittedFeedbackIds = await _context.FeedbackSubmits
+                                                        .Where(fs => fs.student_rollno == studentRollNo)
+                                                        .Select(fs => fs.feedback_group_id)
+                                                        .Distinct()
+                                                        .ToListAsync();
+
+                var pendingFeedbacksQuery = _context.Feedback
+                                            .Where(f => f.course_id == studentCourseId && f.status == "active")
+                                            .SelectMany(f => f.FeedbackGroups
+                                                .Where(fg => (fg.GroupId == studentGroupId || fg.GroupId == null) &&
+                                                             !submittedFeedbackIds.Contains(fg.FeedbackGroupId))
+                                                .Select(fg => new
+                                                {
+                                                    FeedbackGroupId = fg.FeedbackGroupId,
+                                                    FeedbackId = f.FeedbackId,
+                                                    CourseName = f.Course.course_name,
+                                                    ModuleName = f.Module.module_name,
+                                                    FeedbackTypeName = f.FeedbackType.feedback_type_title,
+                                                    FeedbackTypeId = f.feedback_type_id,
+                                                    StaffName = fg.Staff != null ? fg.Staff.first_name + " " + fg.Staff.last_name : "-",
+                                                    GroupName = fg.Groups != null ? fg.Groups.group_name : "-",
+                                                    Session = f.session,
+                                                    StartDate = f.start_date,
+                                                    EndDate = f.end_date,
+                                                    Status = f.status
+                                                }));
+
+                var totalCount = await pendingFeedbacksQuery.CountAsync();
+
+                var result = await pendingFeedbacksQuery
+                                    .OrderByDescending(f => f.FeedbackGroupId)
+                                    .Skip((page - 1) * pageSize)
+                                    .Take(pageSize)
                                     .ToListAsync();
 
-                var result = feedbacks
-                    .SelectMany(f => f.FeedbackGroups
-                        .Where(fg => fg.GroupId == studentGroupId || fg.GroupId == null)
-                        .Select(fg => new
-                        {
-                            FeedbackGroupId = fg.FeedbackGroupId,
-                            FeedbackId = f.FeedbackId,
-                            CourseName = f.Course.course_name,
-                            ModuleName = f.Module.module_name,
-                            FeedbackTypeName = f.FeedbackType.feedback_type_title,
-                            FeedbackTypeId = f.feedback_type_id,
-                            StaffName = fg.Staff != null
-                                        ? fg.Staff.first_name + " " + fg.Staff.last_name
-                                        : "-",
-                            GroupName = fg.Groups != null
-                                        ? fg.Groups.group_name
-                                        : "-",
-                            Session = f.session,
-                            StartDate = f.start_date,
-                            EndDate = f.end_date,
-                            Status = f.status
-                        }))
-                    .ToList();
+                var paginatedResult = new
+                {
+                    Data = result,
+                    TotalCount = totalCount
+                };
 
-                return Ok(result);
+                return Ok(paginatedResult);
 
             }
             catch (Exception ex)
