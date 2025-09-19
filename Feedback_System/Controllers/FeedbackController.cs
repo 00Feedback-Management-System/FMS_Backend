@@ -583,12 +583,12 @@ namespace Feedback_System.Controllers
                 _ => 0
             };
         }
+        //courseaveargerating,moduleavearge rating,per feedback type rating
         [HttpGet("CourseWiseReportWithRating")]
         public async Task<IActionResult> GetCourseWiseReportWithRating()
         {
             try
             {
-                
                 var feedbacks = await _context.Feedback
                     .Include(f => f.Course)
                     .Include(f => f.Module)
@@ -598,19 +598,18 @@ namespace Feedback_System.Controllers
                 if (!feedbacks.Any())
                     return NotFound(new { message = "No feedback records found" });
 
-               
                 var answers = await (from fa in _context.FeedbackAnswers
                                      join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
                                      join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
                                      where fq.question_type == "mcq" || fq.question_type == "rating"
                                      select new
                                      {
-                                         FeedbackId = fs.feedback_id, // already int
+                                         FeedbackId = fs.feedback_id,
                                          QuestionType = fq.question_type,
                                          AnswerValue = fa.answer
                                      }).ToListAsync();
 
-               
+
                 int MapMcqAnswerToNumber(string answer) => answer switch
                 {
                     "Excellent" => 5,
@@ -621,39 +620,89 @@ namespace Feedback_System.Controllers
                     _ => 0
                 };
 
-              
+
+                double ComputeAverageForFeedbackIds(List<int> feedbackIds)
+                {
+                    var submissionRatings = answers
+                        .Where(a => feedbackIds.Contains((int)a.FeedbackId))
+                        .GroupBy(a => a.FeedbackId)
+                        .Select(submissionGroup =>
+                        {
+                            var mcqValue = submissionGroup
+                                .Where(a => a.QuestionType == "mcq")
+                                .Select(a => MapMcqAnswerToNumber(a.AnswerValue))
+                                .FirstOrDefault();
+
+                            var ratingValue = submissionGroup
+                                .Where(a => a.QuestionType == "rating")
+                                .Select(a => int.TryParse(a.AnswerValue, out var val) ? val : 0)
+                                .FirstOrDefault();
+
+                            var values = new List<int>();
+                            if (mcqValue > 0) values.Add(mcqValue);
+                            if (ratingValue > 0) values.Add(ratingValue);
+
+                            return values.Any() ? values.Average() : 0;
+                        })
+                        .ToList();
+
+                    return submissionRatings.Any()
+                        ? Math.Round(submissionRatings.Average(), 2)
+                        : 0;
+                }
+
+
                 var courseWiseReport = feedbacks
                     .GroupBy(f => f.Course)
                     .Select(courseGroup =>
                     {
-                       
                         var courseFeedbackIds = courseGroup
                             .Select(f => f.FeedbackId)
                             .ToList();
 
-                      
-                        var ratingValues = answers
-                            .Where(a => courseFeedbackIds.Contains((int)a.FeedbackId))
-                            .Select(a => a.QuestionType == "mcq"
-                                ? MapMcqAnswerToNumber(a.AnswerValue)
-                                : int.TryParse(a.AnswerValue, out var val) ? val : 0)
-                            .ToList();
-
-                        double avgRating = ratingValues.Any() ? ratingValues.Average() : 0;
+                        double courseAvgRating = ComputeAverageForFeedbackIds(courseFeedbackIds);
 
                         return new
                         {
                             CourseName = courseGroup.Key.course_name,
-                            CourseAverageRating = Math.Round(avgRating, 2),
+                            CourseAverageRating = courseAvgRating,
+
                             Modules = courseGroup
                                 .GroupBy(f => f.Module)
-                                .Select(moduleGroup => new
+                                .Select(moduleGroup =>
                                 {
-                                    ModuleName = moduleGroup.Key.module_name,
-                                    FeedbackTypes = moduleGroup
-                                        .Select(f => f.FeedbackType.feedback_type_title)
-                                        .Distinct()
-                                        .ToList()
+
+                                    var feedbackTypeRatings = moduleGroup
+                                        .GroupBy(f => f.FeedbackType)
+                                        .Select(ftGroup =>
+                                        {
+                                            var ftFeedbackIds = ftGroup
+                                                .Select(f => f.FeedbackId)
+                                                .ToList();
+
+                                            double ftAvgRating = ComputeAverageForFeedbackIds(ftFeedbackIds);
+
+                                            return new
+                                            {
+                                                FeedbackTypeTitle = ftGroup.Key.feedback_type_title,
+                                                AverageRating = ftAvgRating
+                                            };
+                                        })
+                                        .ToList();
+
+
+                                    var moduleFeedbackIds = moduleGroup
+                                        .Select(f => f.FeedbackId)
+                                        .ToList();
+
+                                    double moduleAvgRating = ComputeAverageForFeedbackIds(moduleFeedbackIds);
+
+                                    return new
+                                    {
+                                        ModuleName = moduleGroup.Key.module_name,
+                                        ModuleAverageRating = moduleAvgRating,
+                                        FeedbackTypes = feedbackTypeRatings
+                                    };
                                 })
                                 .ToList()
                         };
@@ -667,6 +716,7 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Error generating report", error = ex.Message });
             }
         }
+
 
 
 

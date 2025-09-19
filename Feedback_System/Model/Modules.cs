@@ -13,6 +13,6 @@ namespace Feedback_System.Model
         public string module_name { get; set; }
         public int duration { get; set; }
 
-        public Course Course { get; set; }
+        public Course? Course { get; set; }
     }
 }
