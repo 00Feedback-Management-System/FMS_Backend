@@ -69,6 +69,9 @@ namespace Feedback_System
                 app.UseSwaggerUI();
             }
 
+            // Enable static file serving
+            app.UseStaticFiles();
+
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

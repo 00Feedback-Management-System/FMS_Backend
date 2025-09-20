@@ -12,10 +12,6 @@ namespace Feedback_System.Model
         [ForeignKey("Staffroles")]
         public int? staffrole_id { get; set; }
 
-        [ForeignKey("Students")]
-
-        public int? student_rollno { get; set; }
-
         public string route { get; set; }
 
         public string component { get; set; }
