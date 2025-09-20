@@ -149,45 +149,51 @@ namespace Feedback_System.Controllers
 
 
 
-        [HttpGet("GetFeedback")]
-        public async Task<IActionResult> GetScheduledFeedback()
+        [HttpGet("GetFeedbackPaged")]
+        public async Task<IActionResult> GetScheduledFeedbackPaged(int pageNumber = 1, int pageSize = 5)
         {
-            var feedbacks = await _context.Feedback
-                .Include(f => f.Course)
-                .Include(f => f.Module)
-                .Include(f => f.FeedbackType)
-                .Include(f => f.FeedbackGroups)
-                    .ThenInclude(fg => fg.Staff)
-                .Include(f => f.FeedbackGroups)
-                    .ThenInclude(fg => fg.Groups)
-                .ToListAsync();
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 5;
 
-            var result = feedbacks
-                .SelectMany(f => f.FeedbackGroups.Select(fg => new
+            var query = _context.FeedbackGroup
+                .Include(fg => fg.Feedback).ThenInclude(f => f.Course)
+                .Include(fg => fg.Feedback).ThenInclude(f => f.Module)
+                .Include(fg => fg.Feedback).ThenInclude(f => f.FeedbackType)
+                .Include(fg => fg.Staff)
+                .Include(fg => fg.Groups)
+                .Select(fg => new
                 {
-                    FeedbackGroupId = fg.FeedbackGroupId, // ✅ unique per row
-                    FeedbackId = f.FeedbackId,
-                    CourseName = f.Course.course_name,
-                    ModuleName = f.Module.module_name,
-                    FeedbackTypeName = f.FeedbackType.feedback_type_title,
-                    FeedbackTypeId = f.feedback_type_id,
+                    FeedbackGroupId = fg.FeedbackGroupId,
+                    FeedbackId = fg.FeedbackId,
+                    CourseName = fg.Feedback.Course.course_name,
+                    ModuleName = fg.Feedback.Module.module_name,
+                    FeedbackTypeName = fg.Feedback.FeedbackType.feedback_type_title,
+                    FeedbackTypeId = fg.Feedback.feedback_type_id,
                     StaffName = fg.Staff != null
                                 ? fg.Staff.first_name + " " + fg.Staff.last_name
                                 : "-",
                     GroupName = fg.Groups != null
                                 ? fg.Groups.group_name
                                 : "-",
-                    Session = f.session,
-                    StartDate = f.start_date,
-                    EndDate = f.end_date,
-                    Status = f.status
-                }))
-                .ToList();
+                    Session = fg.Feedback.session,
+                    StartDate = fg.Feedback.start_date,
+                    EndDate = fg.Feedback.end_date,
+                    Status = fg.Feedback.status
+                });
 
-            return Ok(result);
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .OrderBy(r => r.FeedbackGroupId) // required before Skip/Take
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new { totalCount, data });
         }
 
-        // 🔹 GET by FeedbackId
+
+        // GET by FeedbackId
         [HttpGet("GetByFeedback/{feedbackId}")]
         public async Task<IActionResult> GetByFeedback(int feedbackId)
         {

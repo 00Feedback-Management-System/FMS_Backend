@@ -83,54 +83,63 @@ namespace Feedback_System.Controllers
 
 
 
-        // POST: api/Studentapi
-        [Route("CreateStudent")]
-        [HttpPost]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(400)]
-        public ActionResult<StudentDto> CreateStudent([FromBody] StudentDto studentDto)
+        [HttpPost("UploadProfile")]
+        [Consumes("multipart/form-data")]  // 🔑 Tell Swagger this is a form-data endpoint
+        public async Task<IActionResult> UploadProfile([FromForm] StudentCreateDto dto, IFormFile? profileImage)
         {
-            if (studentDto == null)
-                return BadRequest("Student data is required.");
+            // If no image uploaded, it's optional
+            string? filePath = null;
 
-            if (_db.Students.Any(u => u.student_rollno == studentDto.student_rollno))
+            if (profileImage != null && profileImage.Length > 0)
             {
-                ModelState.AddModelError("student_rollno", "A student with this roll number already exists.");
-                return BadRequest(ModelState);
-            }
-            var hashedPassword = _passwordServices.HashPassword(studentDto.password);
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
 
+                if (!Directory.Exists(uploadPath))
+                    Directory.CreateDirectory(uploadPath);
+
+                filePath = Path.Combine(uploadPath, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await profileImage.CopyToAsync(stream);
+
+                filePath = $"/images/profiles/{fileName}";
+            }
+
+            // Save student
             var student = new Student
             {
-              
-                first_name = studentDto.first_name,
-                last_name = studentDto.last_name,
-                email = studentDto.email,
-                password = hashedPassword,
-                group_id = studentDto.group_id,
-                profile_image = studentDto.profile_image,
+                first_name = dto.FirstName,
+                last_name = dto.LastName,
+                email = dto.Email,
+                password = _passwordServices.HashPassword(dto.Password),
+                group_id = dto.GroupId,
+                profile_image = filePath, // ✅ null if not uploaded
                 login_time = DateTime.Now
             };
 
             _db.Students.Add(student);
-            _db.SaveChanges();
-            studentDto.password = null;
-            var createdDto = new StudentDto
+            await _db.SaveChangesAsync();
+
+            // Also add to CourseStudent
+            var courseStudent = new CourseStudent
             {
-                student_rollno = student.student_rollno,
-                first_name = student.first_name,
-                last_name = student.last_name,
-                email = student.email,
-                password = student.password,
-                group_id = (int)student.group_id,
-                profile_image = student.profile_image,
-                login_time = student.login_time
+                course_id = dto.CourseId,
+                student_rollno = student.student_rollno
             };
 
-            return CreatedAtAction(nameof(GetStudents),
-                new { student_rollno = createdDto.student_rollno },
-                createdDto);
+            _db.CourseStudents.Add(courseStudent);
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = "Student created successfully",
+               
+            });
         }
+
+
+
 
         [HttpPut("UpdateStudent/{student_rollno}")]
         [ProducesResponseType(204)]

@@ -4,6 +4,7 @@ using Feedback_System.Model;
 using Feedback_System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 
 namespace Feedback_System.Controllers
@@ -14,47 +15,72 @@ namespace Feedback_System.Controllers
     {
         public readonly ApplicationDBContext _db;
         private readonly PasswordServices _passwordServices;
+        private readonly IWebHostEnvironment _environment;
 
-        public StaffController(ApplicationDBContext dbContext, PasswordServices passwordServices)
+        public StaffController(ApplicationDBContext dbContext, PasswordServices passwordServices, IWebHostEnvironment environment)
         {
             _db = dbContext;
             _passwordServices = passwordServices;
+            _environment = environment;
         }
 
         [HttpPost("addStaff")]
-        public IActionResult AddStaff([FromBody] StaffDTO staffDTO)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateStaff([FromForm] StaffDTO dto, IFormFile? profileImage)
         {
-            try
+            if (string.IsNullOrEmpty(dto.first_name) || string.IsNullOrEmpty(dto.last_name) ||
+                string.IsNullOrEmpty(dto.email) || string.IsNullOrEmpty(dto.password))
             {
-                if (staffDTO == null)
-                    return BadRequest(new { message = "Invalid request data" });
+                return BadRequest("Required fields are missing.");
+            }
 
-                var existingStaff = _db.Staff.FirstOrDefault(e => e.email == staffDTO.email);
-                if (existingStaff != null)
-                    return BadRequest(new { message = "Email already registered" });
+            string? filePath = null;
 
-                var hashedPassword = _passwordServices.HashPassword(staffDTO.password);
-
-                Staff staff = new Staff
+            // Handle profile image if provided
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                try
                 {
-                    staffrole_id = staffDTO.staffrole_id,
-                    first_name = staffDTO.first_name,
-                    last_name = staffDTO.last_name,
-                    email = staffDTO.email,
-                    password = hashedPassword,
-                    profile_image = staffDTO.profile_image
-                };
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
 
-                _db.Staff.Add(staff);
-                _db.SaveChanges();
+                    if (!Directory.Exists(uploadPath))
+                        Directory.CreateDirectory(uploadPath);
 
-                return Ok(new { message = "Staff added succesfully", staffid = staff.staff_id });
+                    var fullPath = Path.Combine(uploadPath, fileName);
+
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await profileImage.CopyToAsync(stream);
+
+                    // Save relative path (same as student API)
+                    filePath = $"/images/profiles/{fileName}";
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, $"Error saving profile image: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+
+            var staff = new Staff
             {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+                staffrole_id = dto.staffrole_id,
+                first_name = dto.first_name,
+                last_name = dto.last_name,
+                email = dto.email,
+                password = _passwordServices.HashPassword(dto.password), // Hash for security
+                profile_image = filePath, // null if not uploaded
+                login_time = DateTime.Now
+            };
+
+            _db.Staff.Add(staff);
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Staff created successfully!"
+            });
         }
+
 
         [HttpGet("getAllStaff")]
         public IActionResult GetAllStaff()
@@ -266,7 +292,24 @@ namespace Feedback_System.Controllers
             };
         }
 
-        
+       
+        [Route("GetStaffRoles")]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Staffroles>>> GetStaffRoles()
+        {
+            try
+            {
+            
+                    return await _db.Staffroles.ToListAsync();
+              
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while getting the courses.");
+            }
+        }
+
+
     }
 }
 
