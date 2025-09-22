@@ -189,7 +189,7 @@ namespace Feedback_System.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, Trainer")]
         [HttpGet("{staffId}/scheduledFeedback")]
         public async Task<IActionResult> GetScheduledFeedbackForStaff(int staffId)
         {
