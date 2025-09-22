@@ -9,6 +9,6 @@ namespace Feedback_System.Model
 
         public string group_name { get; set; }
 
-        public int group_count { get; set; }
+    
     }
 }

@@ -79,7 +79,7 @@ namespace Feedback_System.Controllers
 
 
 
-            // ✅ Update feedback fields
+            // Update feedback fields
             feedback.course_id = dto.CourseId ?? feedback.course_id;
             feedback.module_id = dto.ModuleId ?? feedback.module_id;
             feedback.feedback_type_id = dto.FeedbackTypeId ?? feedback.feedback_type_id;
@@ -88,7 +88,7 @@ namespace Feedback_System.Controllers
             feedback.end_date = dto.EndDate;
             feedback.status = dto.Status ?? feedback.status;
 
-            // ✅ Handle FeedbackGroups individually
+            // Handle FeedbackGroups individually
             if (dto.FeedbackGroups != null && dto.FeedbackGroups.Any())
             {
                 var existingGroups = feedback.FeedbackGroups.ToList();
@@ -221,7 +221,7 @@ namespace Feedback_System.Controllers
                 FeedbackGroups = feedback.FeedbackGroups.Select(fg => new FeedbackGroupDto
                 {
                     FeedbackGroupId = fg.FeedbackGroupId,
-                    // 🔹 If it's a single-group feedback, GroupId should stay null instead of 0
+                    // If it's a single-group feedback, GroupId should stay null instead of 0
                     GroupId = fg.GroupId,
                     StaffId = fg.StaffId ?? 0
                 }).ToList()
@@ -252,7 +252,7 @@ namespace Feedback_System.Controllers
                     return BadRequest(new { message = "Feedback reference not found" });
                 }
 
-                // ⏳ Check if current date >= start_date
+                // Check if current date >= start_date
                 if (DateTime.Now >= feedback.start_date)
                 {
                     return BadRequest(new { message = "Cannot delete feedback after start date" });
@@ -260,15 +260,15 @@ namespace Feedback_System.Controllers
 
                 int feedbackId = feedbackGroup.FeedbackId ?? 0;
 
-                // ✅ Remove the FeedbackGroup row
+                // Remove the FeedbackGroup row
                 _context.FeedbackGroup.Remove(feedbackGroup);
                 await _context.SaveChangesAsync();
 
-                // ✅ Check if there are any remaining groups for this FeedbackId
+                // Check if there are any remaining groups for this FeedbackId
                 bool hasRemainingGroups = await _context.FeedbackGroup
                     .AnyAsync(fg => fg.FeedbackId == feedbackId);
 
-                // ✅ If no groups left → delete the main Feedback record also
+                // If no groups left → delete the main Feedback record also
                 if (!hasRemainingGroups)
                 {
                     _context.Feedback.Remove(feedback);
@@ -452,46 +452,9 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Error retrieving scheduled feedback", error = ex.Message });
             }
         }
+     
+      //get data for admin feedback dashboard and rating
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        //get data for admin feedback dashboard and rating
         [HttpGet("FeedbackDashboard-Rating")]
         public async Task<IActionResult> GetFeedbackDashboard()
         {
