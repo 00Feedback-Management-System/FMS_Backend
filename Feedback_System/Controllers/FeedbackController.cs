@@ -76,8 +76,8 @@ namespace Feedback_System.Controllers
             if (feedback == null)
                 return NotFound(new { Message = "Feedback not found!" });
 
-            
-       
+
+
 
             // ✅ Update feedback fields
             feedback.course_id = dto.CourseId ?? feedback.course_id;
@@ -347,7 +347,7 @@ namespace Feedback_System.Controllers
                                              ModuleName = m.module_name,
                                              StaffName = s.first_name + " " + s.last_name,
                                              Session = f.session,
-                                             Answers = new List<FeedbackAnswerDto>() 
+                                             Answers = new List<FeedbackAnswerDto>()
                                          }).FirstOrDefaultAsync();
 
             if (feedbackDetails == null)
@@ -453,44 +453,44 @@ namespace Feedback_System.Controllers
             }
         }
 
-      
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         //get data for admin feedback dashboard and rating
         [HttpGet("FeedbackDashboard-Rating")]
         public async Task<IActionResult> GetFeedbackDashboard()
@@ -822,7 +822,152 @@ namespace Feedback_System.Controllers
                     q.VeryPoor
                 })
             });
-        }
-    }
 
+
+
+            
+
+
+
+        }
+
+        //coursewise report
+
+        [HttpGet("CourseWiseReportWithRating")]
+        public async Task<IActionResult> GetCourseWiseReportWithRating()
+        {
+            try
+            {
+                var feedbacks = await _context.Feedback
+                    .Include(f => f.Course)
+                    .Include(f => f.Module)
+                    .Include(f => f.FeedbackType)
+                    .ToListAsync();
+
+                if (!feedbacks.Any())
+                    return NotFound(new { message = "No feedback records found" });
+
+                var answers = await (from fa in _context.FeedbackAnswers
+                                     join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                     join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                     where fq.question_type == "mcq" || fq.question_type == "rating"
+                                     select new
+                                     {
+                                         FeedbackId = fs.feedback_id,
+                                         QuestionType = fq.question_type,
+                                         AnswerValue = fa.answer
+                                     }).ToListAsync();
+
+
+                int MapMcqAnswerToNumber(string answer) => answer switch
+                {
+                    "Excellent" => 5,
+                    "Good" => 4,
+                    "Average" => 3,
+                    "Poor" => 2,
+                    "Very Poor" => 1,
+                    _ => 0
+                };
+
+
+                double ComputeAverageForFeedbackIds(List<int> feedbackIds)
+                {
+                    var submissionRatings = answers
+                        .Where(a => feedbackIds.Contains((int)a.FeedbackId))
+                        .GroupBy(a => a.FeedbackId)
+                        .Select(submissionGroup =>
+                        {
+                            var mcqValue = submissionGroup
+                                .Where(a => a.QuestionType == "mcq")
+                                .Select(a => MapMcqAnswerToNumber(a.AnswerValue))
+                                .FirstOrDefault();
+
+                            var ratingValue = submissionGroup
+                                .Where(a => a.QuestionType == "rating")
+                                .Select(a => int.TryParse(a.AnswerValue, out var val) ? val : 0)
+                                .FirstOrDefault();
+
+                            var values = new List<int>();
+                            if (mcqValue > 0) values.Add(mcqValue);
+                            if (ratingValue > 0) values.Add(ratingValue);
+
+                            return values.Any() ? values.Average() : 0;
+                        })
+                        .ToList();
+
+                    return submissionRatings.Any()
+                        ? Math.Round(submissionRatings.Average(), 2)
+                        : 0;
+                }
+
+
+                var courseWiseReport = feedbacks
+                    .GroupBy(f => f.Course)
+                    .Select(courseGroup =>
+                    {
+                        var courseFeedbackIds = courseGroup
+                            .Select(f => f.FeedbackId)
+                            .ToList();
+
+                        double courseAvgRating = ComputeAverageForFeedbackIds(courseFeedbackIds);
+
+                        return new
+                        {
+                            CourseName = courseGroup.Key.course_name,
+                            CourseAverageRating = courseAvgRating,
+
+                            Modules = courseGroup
+                                .GroupBy(f => f.Module)
+                                .Select(moduleGroup =>
+                                {
+
+                                    var feedbackTypeRatings = moduleGroup
+                                        .GroupBy(f => f.FeedbackType)
+                                        .Select(ftGroup =>
+                                        {
+                                            var ftFeedbackIds = ftGroup
+                                                .Select(f => f.FeedbackId)
+                                                .ToList();
+
+                                            double ftAvgRating = ComputeAverageForFeedbackIds(ftFeedbackIds);
+
+                                            return new
+                                            {
+                                                FeedbackTypeTitle = ftGroup.Key.feedback_type_title,
+                                                AverageRating = ftAvgRating
+                                            };
+                                        })
+                                        .ToList();
+
+
+                                    var moduleFeedbackIds = moduleGroup
+                                        .Select(f => f.FeedbackId)
+                                        .ToList();
+
+                                    double moduleAvgRating = ComputeAverageForFeedbackIds(moduleFeedbackIds);
+
+                                    return new
+                                    {
+                                        ModuleName = moduleGroup.Key.module_name,
+                                        ModuleAverageRating = moduleAvgRating,
+                                        FeedbackTypes = feedbackTypeRatings
+                                    };
+                                })
+                                .ToList()
+                        };
+                    })
+                    .ToList();
+
+                return Ok(courseWiseReport);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error generating report", error = ex.Message });
+            }
+        }
+
+
+
+
+    }
 }
