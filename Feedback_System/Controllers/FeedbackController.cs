@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -294,6 +295,7 @@ namespace Feedback_System.Controllers
             return Ok(submittedFeedbackIds);
         }
 
+        [Authorize(Roles = "student")]
         [HttpGet("GetSubmittedFeedbackHistory/{studentId}")]
         public async Task<ActionResult> GetSubmittedFeedbackHistory(int studentId)
         {
@@ -372,6 +374,7 @@ namespace Feedback_System.Controllers
             return Ok(feedbackDetails);
         }
 
+        [Authorize(Roles = "student")]
         [HttpGet("GetScheduledFeedbackByStudent/{studentRollNo}")]
         public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo, [FromQuery] int page, [FromQuery] int pageSize)
         {

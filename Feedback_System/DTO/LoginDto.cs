@@ -13,8 +13,8 @@ namespace Feedback_System.DTO
 
         //shri 
 
-        [Required(ErrorMessage = "Role is required.")]
-        public string role { get; set; }
+        //[Required(ErrorMessage = "Role is required.")]
+        //public string? role { get; set; }
 
 
     }
