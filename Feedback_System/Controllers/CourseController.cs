@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
@@ -19,6 +20,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/course
+        [Authorize(Roles = "Admin")]
         [Route("api/GetAllCourse")]
         [HttpGet]
         public IActionResult GetCourses()
@@ -79,6 +81,7 @@ namespace Feedback_System.Controllers
 
 
         // POST: api/course
+        [Authorize(Roles = "Admin")]
         [Route("api/AddCourse")]
         [HttpPost]
         public IActionResult CreateCourse([FromBody] CourseDTO dto)
@@ -143,7 +146,7 @@ namespace Feedback_System.Controllers
 
 
         // PUT: api/course/{id}
-
+        [Authorize(Roles = "Admin")]
         [Route("api/UpdateCourse/{id}")]
 
         [HttpPut]
@@ -190,7 +193,7 @@ namespace Feedback_System.Controllers
 
 
         // DELETE: api/course/{id}
-
+        [Authorize(Roles = "Admin")]
         [Route("api/DeleteCourse/{id}")]
         [HttpDelete]
         public IActionResult DeleteCourse(int id)
@@ -214,6 +217,7 @@ namespace Feedback_System.Controllers
 
         // GET: api/course/{id}
 
+        [Authorize(Roles = "Admin")]
         [Route("api/GetCourseById/{id}")]
 
         [HttpGet]
