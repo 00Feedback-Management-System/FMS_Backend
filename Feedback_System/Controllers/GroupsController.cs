@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/Groups
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Groups>>> GetGroups()
         {
@@ -25,6 +27,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/Groups/5
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<Groups>> GetGroup(int id)
         {
@@ -38,6 +41,7 @@ namespace Feedback_System.Controllers
             return group;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("ByCourse/{courseId}")]
         public async Task<ActionResult<IEnumerable<Groups>>> GetGroupsByCourse(int courseId)
         {
@@ -55,6 +59,7 @@ namespace Feedback_System.Controllers
         }
 
         // POST: api/CourseGroup/addGroups
+        [Authorize(Roles = "Admin")]
         [HttpPost("addGroups")]
         public async Task<IActionResult> AddGroups([FromBody] AddGroupsDto dto)
         {
@@ -128,6 +133,7 @@ namespace Feedback_System.Controllers
 
 
         // PUT: api/Groups/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutGroup(int id, Groups group)
         {
@@ -143,6 +149,7 @@ namespace Feedback_System.Controllers
         }
 
         // DELETE: api/Groups/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGroup(int id)
         {

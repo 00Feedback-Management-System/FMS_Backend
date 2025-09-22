@@ -2,6 +2,7 @@
 using Feedback_System.DTO;
 using Feedback_System.Model;
 using Feedback_System.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ namespace Feedback_System.Controllers
 
 
         // GET: api/Studentapi
+        [Authorize(Roles = "Admin")]
         [Route("GetStudent")]
         [HttpGet]
         [ProducesResponseType(200)]
@@ -52,6 +54,8 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [Authorize(Roles = "student")]
         [HttpGet("GetStudentByRollNo/{student_rollno}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
@@ -244,7 +248,7 @@ namespace Feedback_System.Controllers
             return Ok(submittedStudents);
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("NotSubmitted/{feedbackGroupId}")]
         public async Task<IActionResult> GetNotSubmittedStudents(int feedbackGroupId)
         {
@@ -298,7 +302,7 @@ namespace Feedback_System.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("FeedbackSubmit/{feedbackGroupId}")]
         public async Task<IActionResult> GetFeedbackSummary(int feedbackGroupId)
         {

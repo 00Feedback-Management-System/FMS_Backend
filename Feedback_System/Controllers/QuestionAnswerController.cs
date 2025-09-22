@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ namespace Feedback_System.Controllers
             _db = dbContext;
         }
 
+        [Authorize(Roles = "student")]
         [HttpGet("GetAllQuestions/{feedbackTypeId}")]
         public async Task<ActionResult<IEnumerable<FeedbackQuestion>>> GetAllQuestions(int feedbackTypeId)
         {
@@ -44,6 +46,7 @@ namespace Feedback_System.Controllers
             }
         }
 
+        [Authorize(Roles = "student")]
         [HttpPost("SubmitFeedbackAnswers")]
         public async Task<IActionResult> SubmitFeedbackAnswers([FromBody] FeedbackSubmitDto feedbackSubmitDto)
         {

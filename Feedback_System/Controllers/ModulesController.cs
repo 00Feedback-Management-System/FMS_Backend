@@ -1,5 +1,6 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/Modules
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Modules>>> GetModules()
         {
@@ -24,6 +26,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/Modules/5
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<Modules>> GetModule(int id)
         {
@@ -38,6 +41,7 @@ namespace Feedback_System.Controllers
         }
 
         // ✅ Get all modules by courseId
+        [Authorize(Roles = "Admin")]
         [HttpGet("ByCourse/{courseId}")]
         public async Task<ActionResult<IEnumerable<Modules>>> GetModulesByCourse(int courseId)
         {
@@ -52,6 +56,7 @@ namespace Feedback_System.Controllers
         }
 
         // POST: api/Modules
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Modules>> PostModule(Modules module)
         {
@@ -62,6 +67,7 @@ namespace Feedback_System.Controllers
         }
 
         // PUT: api/Modules/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutModule(int id, Modules module)
         {
@@ -77,6 +83,7 @@ namespace Feedback_System.Controllers
         }
 
         // DELETE: api/Modules/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteModule(int id)
         {

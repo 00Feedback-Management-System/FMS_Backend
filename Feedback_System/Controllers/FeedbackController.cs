@@ -20,6 +20,7 @@ namespace Feedback_System.Controllers
             _context = context;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("Schedule")]
         public async Task<IActionResult> ScheduleFeedback([FromBody] FeedbackDto dto)
         {
@@ -65,6 +66,8 @@ namespace Feedback_System.Controllers
 
             return Ok(new { Message = "Feedback scheduled successfully!" });
         }
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("Update/{feedbackId}")]
         public async Task<IActionResult> UpdateFeedback(int feedbackId, [FromBody] FeedbackDto dto)
         {
@@ -150,7 +153,7 @@ namespace Feedback_System.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetFeedbackPaged")]
         public async Task<IActionResult> GetScheduledFeedbackPaged(int pageNumber = 1, int pageSize = 5)
         {
@@ -196,6 +199,7 @@ namespace Feedback_System.Controllers
 
 
         // GET by FeedbackId
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetByFeedback/{feedbackId}")]
         public async Task<IActionResult> GetByFeedback(int feedbackId)
         {
@@ -232,7 +236,7 @@ namespace Feedback_System.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("DeleteFeedbackGroup/{feedbackGroupId}")]
         public async Task<IActionResult> DeleteFeedbackGroup(int feedbackGroupId)
         {
@@ -284,6 +288,7 @@ namespace Feedback_System.Controllers
             }
         }
 
+        [Authorize(Roles = "student")]
         [HttpGet("GetSubmittedFeedbackIdsByStudentId/{studentId}")]
         public async Task<ActionResult<List<int>>> GetSubmittedFeedbackIdsByStudentId(int studentId)
         {
@@ -330,6 +335,7 @@ namespace Feedback_System.Controllers
             return Ok(submittedFeedbacks);
         }
 
+        [Authorize(Roles = "student")]
         [HttpGet("GetSubmittedFeedbackDetailsForView/{feedbackGroupId}/{studentRollNo}")]
         public async Task<ActionResult<SubmittedFeedbackDetailsDto>> GetSubmittedFeedbackDetailsForStudentAndForm(int feedbackGroupId, int studentRollNo)
         {
@@ -455,9 +461,10 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Error retrieving scheduled feedback", error = ex.Message });
             }
         }
-     
-      //get data for admin feedback dashboard and rating
 
+        //get data for admin feedback dashboard and rating
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("FeedbackDashboard-Rating")]
         public async Task<IActionResult> GetFeedbackDashboard()
         {
@@ -577,7 +584,8 @@ namespace Feedback_System.Controllers
             return Ok(result);
         }
 
-        //staff rating 
+        //staff rating
+        [Authorize(Roles = "Admin")]
         [HttpGet("StaffRating")]
         public async Task<IActionResult> Rating()
         {
@@ -634,6 +642,7 @@ namespace Feedback_System.Controllers
             };
         }
         //faculty feedback summary
+        [Authorize(Roles = "Admin")]
         [HttpPost("FacultyFeedbackSummary")]
         public async Task<IActionResult> FacultyFeedbackSummary([FromBody] FacultyFeedbackSummaryDto request)
         {
@@ -798,7 +807,7 @@ namespace Feedback_System.Controllers
         }
 
         //coursewise report
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("CourseWiseReportWithRating")]
         public async Task<IActionResult> GetCourseWiseReportWithRating()
         {

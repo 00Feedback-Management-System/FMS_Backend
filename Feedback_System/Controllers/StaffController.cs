@@ -2,6 +2,7 @@
 using Feedback_System.DTO;
 using Feedback_System.Model;
 using Feedback_System.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -24,6 +25,7 @@ namespace Feedback_System.Controllers
             _environment = environment;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("addStaff")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateStaff([FromForm] StaffDTO dto, IFormFile? profileImage)
@@ -81,7 +83,7 @@ namespace Feedback_System.Controllers
             });
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("getAllStaff")]
         public IActionResult GetAllStaff()
         {
@@ -108,6 +110,7 @@ namespace Feedback_System.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("getStaff/{id}")]
         public IActionResult GetStaffById(int id)
         {
@@ -134,6 +137,7 @@ namespace Feedback_System.Controllers
 
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("updateStaff/{id}")]
         public IActionResult UpdateStaff(int id, [FromBody] StaffDTO staffDTO)
         {
@@ -164,6 +168,7 @@ namespace Feedback_System.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("deleteStaff/{id}")]
         public IActionResult DeleteStaff(int id)
         {
@@ -183,7 +188,8 @@ namespace Feedback_System.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("{staffId}/scheduledFeedback")]
         public async Task<IActionResult> GetScheduledFeedbackForStaff(int staffId)
         {
@@ -292,7 +298,7 @@ namespace Feedback_System.Controllers
             };
         }
 
-       
+        [Authorize(Roles = "Admin")]
         [Route("GetStaffRoles")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Staffroles>>> GetStaffRoles()

@@ -1,6 +1,7 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
 using Feedback_System.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/FeedbackType/GetFeedbackType
+        [Authorize(Roles = "Admin")]
         [Route("GetFeedbackType")]
         [HttpGet]
         public ActionResult<IEnumerable<FeedbackTypeDto>> GetFeedbackTypes()
@@ -40,6 +42,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/FeedbackType/{id}
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFeedbackType(int id)
         {
@@ -71,6 +74,7 @@ namespace Feedback_System.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("ByGroup/{groupType}")]
         public async Task<IActionResult> GetFeedbackTypesByGroup(string groupType)
         {
@@ -103,6 +107,7 @@ namespace Feedback_System.Controllers
 
 
         // POST: api/FeedbackType/CreateFeedbackType
+        [Authorize(Roles = "Admin")]
         [Route("CreateFeedbackType")]
         [HttpPost]
         public async Task<IActionResult> CreateFeedbackType([FromBody] CreateFeedbackTypeDto dto)
@@ -144,6 +149,7 @@ namespace Feedback_System.Controllers
         }
 
         // PUT: api/FeedbackType/{id}
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFeedbackType(int id, [FromBody] CreateFeedbackTypeDto dto)
         {
@@ -183,6 +189,7 @@ namespace Feedback_System.Controllers
         }
 
         // DELETE: api/FeedbackType/{id}
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFeedbackType(int id)
         {

@@ -1,5 +1,6 @@
 ﻿using Feedback_System.Data;
 using Feedback_System.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,8 @@ namespace Feedback_System.Controllers
                 _context = context;
             }
 
-            [HttpGet("course-feedback-report")]
+        [Authorize(Roles = "Admin")]
+        [HttpGet("course-feedback-report")]
             public async Task<IActionResult> GetCourseFeedbackReport()
             {
                 // Step 1: build a "raw" projection that includes all necessary fields.
