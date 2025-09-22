@@ -823,6 +823,42 @@ namespace Feedback_System.Controllers
                 })
             });
         }
+
+        [HttpGet("PerFacultySummary")]
+        public async Task<IActionResult> GetPerFacultySummary(
+    string courseType, int courseId, int feedbackTypeId)
+        {
+            try
+            {
+                var query = from f in _context.Feedback
+                            join fg in _context.FeedbackGroup on f.FeedbackId equals fg.FeedbackId
+                            join staff in _context.Staff on fg.StaffId equals staff.staff_id
+                            join fs in _context.FeedbackSubmits on f.FeedbackId equals fs.feedback_id
+                            join ans in _context.FeedbackAnswers on fs.feedback_submit_id equals ans.feedback_submit_id
+                            where f.Course.course_type == courseType
+                                  && f.course_id == courseId
+                                  && f.feedback_type_id == feedbackTypeId
+                            group ans by new { staff.staff_id, staff.first_name, staff.last_name } into g
+                            select new PerFacultyFeedbackSummaryDTO
+                            {
+                                StaffId = g.Key.staff_id,
+                                FacultyName = g.Key.first_name + " " + g.Key.last_name,
+                                AverageRating = g.Average(a => Convert.ToDouble(a.answer))
+                            };
+
+                var result = await query.ToListAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Error generating faculty feedback summary",
+                    details = ex.Message
+                });
+            }
+        }
+
     }
 
 }

@@ -2,12 +2,13 @@
 using Feedback_System.DTO;
 using Feedback_System.Model;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 
 
 namespace Feedback_System.Controllers
 {
-   // [Route("api/[controller]")]
+    // [Route("api/[controller]")]
     [ApiController]
     public class CourseController : ControllerBase
     {
@@ -37,7 +38,8 @@ namespace Feedback_System.Controllers
                     }).ToList();
 
                 return Ok(courses);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 return StatusCode(500, "An error occurred while getting the courses.");
             }
@@ -241,7 +243,52 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, "An error occurred while retrieving the course.");
 
             }
-                
+
+        }
+
+        [Route("api/GetCourseTypes")]
+        [HttpGet]
+        public async Task<IActionResult> GetCourseTypes()
+        {
+            try
+            {
+                var types = await _context.Courses
+                            .Select(c => c.course_type)
+                            .Distinct()
+                            .ToListAsync();
+
+                return Ok(types);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error fetching course types", details = ex.Message });
+            }
+        }
+
+        [Route("api/GetCoursesByType/{type}")]
+        [HttpGet]
+        public async Task<IActionResult> GetCoursesByType(string type)
+        {
+            try
+            {
+                var courses = await _context.Courses
+                                .Where(c => c.course_type.ToLower() == type.ToLower())
+                                .Select(c => new CourseDTO
+                                {
+                                    course_id = c.course_id,
+                                    course_name = c.course_name,
+                                    start_date = c.start_date,
+                                    end_date = c.end_date,
+                                    duration = c.duration,
+                                    course_type = c.course_type
+                                })
+                                .ToListAsync();
+                return Ok(courses);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error fetching courses by type", details = ex.Message });
+            }
         }
     }
 }
