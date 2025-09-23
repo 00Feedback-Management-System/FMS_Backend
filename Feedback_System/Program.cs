@@ -131,10 +131,11 @@ namespace Feedback_System
 
             app.UseHttpsRedirection();
 
+            app.UseCors("allowall");
+
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseCors("allowall");
             app.MapControllers();
 
             app.Run();
