@@ -221,5 +221,43 @@ namespace Feedback_System.Controllers
         //        return BadRequest("Invalid role specified.");
         //    }
         //}
+
+        //
+
+
+        //newly added code for change password
+
+        [HttpPost]
+        [Route("api/Forgot-Password")]
+        public IActionResult ForgotPassword([FromBody] LoginDto loginDto)
+        {
+            var passwordHasher = new PasswordHasher<object>();
+
+            // 🔹 First check in Students table
+            var student = _context.Students.FirstOrDefault(s => s.email == loginDto.email);
+            if (student != null)
+            {
+                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+                student.password = hashedPassword;
+                _context.SaveChanges();
+
+                return Ok(new { message = "Password reset successful (Student)." });
+            }
+
+            // 🔹 If not found, check in Staff table
+            var staff = _context.Staff.FirstOrDefault(s => s.email == loginDto.email);
+            if (staff != null)
+            {
+                var hashedPassword = passwordHasher.HashPassword(null, loginDto.password);
+                staff.password = hashedPassword;
+                _context.SaveChanges();
+
+                return Ok(new { message = "Password reset successful (Staff)." });
+            }
+
+            // 🔹 If email not found in either table
+            return Ok(new { message = "Invalid email." });
+        }
+
     }
 }
