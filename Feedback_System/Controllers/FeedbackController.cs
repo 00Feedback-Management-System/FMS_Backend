@@ -302,7 +302,7 @@ namespace Feedback_System.Controllers
 
         [Authorize(Roles = "student")]
         [HttpGet("GetSubmittedFeedbackHistory/{studentId}")]
-        public async Task<ActionResult> GetSubmittedFeedbackHistory(int studentId)
+        public async Task<ActionResult> GetSubmittedFeedbackHistory(int studentId, [FromQuery] int page = 1, [FromQuery] int pageSize = 5)
         {
             var student = await _context.Students.FirstOrDefaultAsync(s => s.student_rollno == studentId);
             if (student == null)
@@ -310,7 +310,7 @@ namespace Feedback_System.Controllers
                 return NotFound(new { message = "Student not found." });
             }
 
-            var submittedFeedbacks = await (from fs in _context.FeedbackSubmits
+            var submittedFeedbacks =  (from fs in _context.FeedbackSubmits
                                             join fg in _context.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
                                             join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
                                             join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
@@ -330,9 +330,21 @@ namespace Feedback_System.Controllers
                                                 session = f.session,
                                                 submittedAt = fs.submited_at,
                                                 groupName = fg.GroupId
-                                            }).ToListAsync();
+                                            });
 
-            return Ok(submittedFeedbacks);
+            var totalCount = await submittedFeedbacks.CountAsync();
+
+            var data = await submittedFeedbacks
+                        .OrderByDescending(x => x.feedbackGroupId)
+                        .Skip((page - 1) * pageSize)
+                        .Take(pageSize)
+                        .ToListAsync();
+
+            return Ok(new
+            {
+                totalCount,
+                data
+            });
         }
 
         [Authorize(Roles = "student")]
@@ -341,7 +353,7 @@ namespace Feedback_System.Controllers
         {
             var feedbackDetails = await (from fs in _context.FeedbackSubmits
                                          where fs.feedback_group_id == feedbackGroupId && fs.student_rollno == studentRollNo
-                                         join fg in _context.FeedbackGroup on fs.feedback_id equals fg.FeedbackGroupId
+                                         join fg in _context.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
                                          join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
                                          join ft in _context.FeedbackType on f.feedback_type_id equals ft.feedback_type_id
                                          join c in _context.Courses on f.course_id equals c.course_id
@@ -382,7 +394,7 @@ namespace Feedback_System.Controllers
 
         [Authorize(Roles = "student")]
         [HttpGet("GetScheduledFeedbackByStudent/{studentRollNo}")]
-        public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo, [FromQuery] int page, [FromQuery] int pageSize)
+        public async Task<IActionResult> GetScheduledFeedbackByStudent(int studentRollNo, [FromQuery] int page = 1, [FromQuery] int pageSize = 5) 
         {
             try
             {
@@ -396,10 +408,6 @@ namespace Feedback_System.Controllers
                 }
 
                 var studentGroupId = student.group_id;
-                //if (studentGroupId == null)
-                //{
-                //    return BadRequest(new { message = "Student is not assigned to any group" });
-                //}
 
                 var courseGroup = await _context.CourseGroups
                                     .Include(cg => cg.Course)
