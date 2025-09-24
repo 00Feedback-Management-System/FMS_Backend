@@ -317,7 +317,7 @@ namespace Feedback_System.Controllers
                                             join c in _context.Courses on f.course_id equals c.course_id
                                             join m in _context.Modules on f.module_id equals m.module_id
                                             join s in _context.Staff on fg.StaffId equals s.staff_id
-                                            where fs.student_rollno == studentId || fg.GroupId == student.group_id
+                                            where fs.student_rollno == studentId
                                             select new
                                             {
                                                 feedbackGroupId = fg.FeedbackGroupId,
