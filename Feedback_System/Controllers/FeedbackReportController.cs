@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Feedback_System.Controllers
@@ -203,6 +204,209 @@ namespace Feedback_System.Controllers
                 "Very Poor" => 1,
                 _ => 0
             };
+        }
+
+        //faculty feedback summary
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("FacultyFeedbackSummary")]
+        public async Task<IActionResult> FacultyFeedbackSummary([FromBody] FacultyFeedbackSummaryDto request)
+        {
+            if (request == null)
+                return BadRequest(new { message = "Invalid request" });
+
+            // 1. Get the feedback type (if required)
+            var feedbackType = await _context.FeedbackType
+                .FirstOrDefaultAsync(ft => ft.feedback_type_title == request.type_name);
+
+            if (feedbackType == null)
+                return NotFound(new { message = "Feedback type not found." });
+
+            // 2. Get matching feedback groups (same as you had)
+            var feedbackGroups = await (
+                from fg in _context.FeedbackGroup
+                join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
+                join c in _context.Courses on f.course_id equals c.course_id
+                join m in _context.Modules on f.module_id equals m.module_id
+                join s in _context.Staff on fg.StaffId equals s.staff_id
+                where c.course_name == request.course_name
+                      && m.module_name == request.module_name
+                      && (s.first_name + " " + s.last_name) == request.staff_name
+                select fg
+            ).ToListAsync();
+
+            if (!feedbackGroups.Any())
+                return NotFound(new { message = "No feedback groups found." });
+
+            var feedbackGroupIds = feedbackGroups.Select(fg => fg.FeedbackGroupId).ToList();
+
+            // --- compute total students / submitted / remaining as you already do ---
+            var firstFeedbackGroup = await _context.FeedbackGroup
+                .Include(fg => fg.Feedback)
+                .FirstOrDefaultAsync(fg => feedbackGroupIds.Contains(fg.FeedbackGroupId));
+
+            int totalStudents = 0;
+            if (firstFeedbackGroup != null)
+            {
+                int courseId = firstFeedbackGroup.Feedback.course_id;
+
+                var courseStudents = from cs in _context.CourseStudents
+                                     join st in _context.Students on cs.student_rollno equals st.student_rollno
+                                     where cs.course_id == courseId
+                                     select st;
+
+                if (firstFeedbackGroup.GroupId.HasValue)
+                {
+                    int groupId = firstFeedbackGroup.GroupId.Value;
+                    courseStudents = courseStudents.Where(st => st.group_id == groupId);
+                }
+
+                totalStudents = await courseStudents.CountAsync();
+            }
+
+            var submittedCount = await _context.FeedbackSubmits
+                .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
+
+            var remainingCount = totalStudents - submittedCount;
+
+            // 3. Fetch all answers with question info AND feedback_submit_id (important)
+            var answers = await (from fa in _context.FeedbackAnswers
+                                 join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                 join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                 where feedbackGroupIds.Contains(fs.feedback_group_id ?? 0)
+                                       && fq.feedback_type_id == feedbackType.feedback_type_id
+                                 select new
+                                 {
+                                     SubmitId = fs.feedback_submit_id,
+                                     fq.question_id,
+                                     fq.question,
+                                     fq.question_type,
+                                     Answer = fa.answer
+                                 }).ToListAsync();
+
+            // Local helper that maps answer -> numeric score (1..5) or null if cannot map
+            int? MapAnswerToNumber(string answer, string questionType)
+            {
+                if (string.IsNullOrWhiteSpace(answer)) return null;
+
+                // Normalize
+                var a = answer.Trim();
+
+                if (!string.IsNullOrEmpty(questionType) && questionType.Equals("mcq", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Map common MCQ labels to numbers
+                    return a.ToLowerInvariant() switch
+                    {
+                        "excellent" => 5,
+                        "good" => 4,
+                        "average" => 3,
+                        "poor" => 2,
+                        "very poor" => 1,
+                        "verypoor" => 1,
+                        _ => TryParseNumeric(a)
+                    };
+                }
+
+                // If rating type or numeric answer, try parse number (allow decimals)
+                return TryParseNumeric(a);
+            }
+
+            int? TryParseNumeric(string s)
+            {
+                if (int.TryParse(s, out var iv)) return iv;
+                if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var dv))
+                {
+                    // return rounded integer or keep precise? We'll use the numeric value (as double) when averaging,
+                    // but for counts we use rounded value. For Map we return rounded int.
+                    return (int)Math.Round(dv);
+                }
+                return null;
+            }
+
+            // 4. Compute per-submission averages (ignore answers which couldn't be mapped)
+            var submissionAverages = answers
+                .GroupBy(a => a.SubmitId)
+                .Select(g =>
+                {
+                    var mapped = g.Select(a => MapAnswerToNumber(a.Answer, a.question_type))
+                                  .Where(n => n.HasValue)
+                                  .Select(n => (double)n.Value)
+                                  .ToList();
+
+                    return mapped.Any() ? (double?)mapped.Average() : null;
+                })
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .ToList();
+
+            double overallAvgRating = 0;
+            if (submissionAverages.Any())
+            {
+                overallAvgRating = Math.Round(submissionAverages.Average(), 2); // round to 2 decimals
+            }
+
+            // 5. Build question stats (counts per answer category) — robust to numeric or label answers
+            bool IsNumericEqual(string ans, int value)
+            {
+                if (int.TryParse(ans, out var iv)) return iv == value;
+                if (double.TryParse(ans, NumberStyles.Any, CultureInfo.InvariantCulture, out var dv))
+                    return (int)Math.Round(dv) == value;
+                return false;
+            }
+
+            var questionStats = answers
+                .GroupBy(a => new { a.question_id, a.question, a.question_type })
+                .Select(g =>
+                {
+                    var qlist = g.ToList();
+                    var excellent = qlist.Count(a => a.Answer != null &&
+                        (a.Answer.Equals("Excellent", StringComparison.OrdinalIgnoreCase) || IsNumericEqual(a.Answer, 5)));
+                    var good = qlist.Count(a => a.Answer != null &&
+                        (a.Answer.Equals("Good", StringComparison.OrdinalIgnoreCase) || IsNumericEqual(a.Answer, 4)));
+                    var average = qlist.Count(a => a.Answer != null &&
+                        (a.Answer.Equals("Average", StringComparison.OrdinalIgnoreCase) || IsNumericEqual(a.Answer, 3)));
+                    var poor = qlist.Count(a => a.Answer != null &&
+                        (a.Answer.Equals("Poor", StringComparison.OrdinalIgnoreCase) || IsNumericEqual(a.Answer, 2)));
+                    var veryPoor = qlist.Count(a => a.Answer != null &&
+                        (a.Answer.Equals("Very Poor", StringComparison.OrdinalIgnoreCase) || IsNumericEqual(a.Answer, 1)));
+
+                    return new
+                    {
+                        QuestionId = g.Key.question_id,
+                        QuestionText = g.Key.question,
+                        QuestionType = g.Key.question_type,
+                        Excellent = excellent,
+                        Good = good,
+                        Average = average,
+                        Poor = poor,
+                        VeryPoor = veryPoor
+                    };
+                })
+                .ToList();
+
+            // 6. Return response (use lowercase property names if your front-end expects that)
+            return Ok(new
+            {
+                staff_name = request.staff_name,
+                module_name = request.module_name,
+                course_name = request.course_name,
+                type_name = request.type_name,
+                date = request.date,
+                submitted = submittedCount,
+                remaining = remainingCount,
+                rating = overallAvgRating,
+                questions = questionStats.Select(q => new
+                {
+                    questionId = q.QuestionId,
+                    questionText = q.QuestionText,
+                    questionType = q.QuestionType,
+                    excellent = q.Excellent,
+                    good = q.Good,
+                    average = q.Average,
+                    poor = q.Poor,
+                    veryPoor = q.VeryPoor
+                })
+            });
         }
     }
 
