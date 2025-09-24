@@ -126,7 +126,85 @@ namespace Feedback_System.Controllers
 
                 return Ok(sorted);
             }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("PerFacultyFeedbackSummary")]
+        public async Task<IActionResult> PerFacultyFeedbackSummary([FromQuery] string courseType, [FromQuery] int courseId, [FromQuery] string feedbackTypeIds )
+        {
+            try
+            {
+                var feedbackTypeIdList = new List<int>();
+
+                if (!string.IsNullOrWhiteSpace(feedbackTypeIds))
+                {
+                    foreach (var id in feedbackTypeIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (int.TryParse(id, out var parsed))
+                        {
+                            feedbackTypeIdList.Add(parsed);
+                        }
+                    }
+                }
+
+                var staffRatings = await (from fa in _context.FeedbackAnswers
+                                          join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+                                          join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+                                          join f in _context.Feedback on fs.feedback_id equals f.FeedbackId
+                                          join fg in _context.FeedbackGroup on fs.feedback_group_id equals fg.FeedbackGroupId
+                                          join s in _context.Staff on fg.StaffId equals s.staff_id
+                                          where (fq.question_type == "mcq" || fq.question_type == "rating")
+                                                && f.course_id == courseId
+                                                && feedbackTypeIdList.Contains(f.feedback_type_id)
+                                                && f.Course.course_type == courseType
+                                          select new
+                                          {
+                                              StaffId = s.staff_id,
+                                              StaffName = s.first_name + " " + s.last_name,
+                                              QuestionType = fq.question_type,
+                                              AnswerValue = fa.answer
+                                          }).ToListAsync();
+
+                var mappedRatings = staffRatings.Select(x => new
+                {
+                    x.StaffId,
+                    x.StaffName,
+                    Value = x.QuestionType == "mcq"
+                        ? MapMcqAnswerToNumber(x.AnswerValue)
+                        : int.TryParse(x.AnswerValue, out var val) ? val : 0
+                });
+
+                var result = mappedRatings
+                    .GroupBy(x => new { x.StaffId, x.StaffName })
+                    .Select(g => new
+                    {
+                        StaffId = g.Key.StaffId,
+                        StaffName = g.Key.StaffName,
+                        AverageRating = g.Select(x => x.Value).DefaultIfEmpty(0).Average()
+                    })
+                    .OrderByDescending(r => r.AverageRating)
+                    .ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error generating faculty summary", details = ex.Message });
+            }
         }
 
-    
+        private int MapMcqAnswerToNumber(string answer)
+        {
+            return answer switch
+            {
+                "Excellent" => 5,
+                "Good" => 4,
+                "Average" => 3,
+                "Poor" => 2,
+                "Very Poor" => 1,
+                _ => 0
+            };
+        }
+    }
+
+        
 }
