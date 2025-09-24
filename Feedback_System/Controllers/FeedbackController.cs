@@ -650,161 +650,161 @@ namespace Feedback_System.Controllers
             };
         }
         //faculty feedback summary
-        [Authorize(Roles = "Admin")]
-        [HttpPost("FacultyFeedbackSummary")]
-        public async Task<IActionResult> FacultyFeedbackSummary([FromBody] FacultyFeedbackSummaryDto request)
-        {
-            if (request == null)
-                return BadRequest(new { message = "Invalid request" });
+        //[Authorize(Roles = "Admin")]
+        //[HttpPost("FacultyFeedbackSummary")]
+        //public async Task<IActionResult> FacultyFeedbackSummary([FromBody] FacultyFeedbackSummaryDto request)
+        //{
+        //    if (request == null)
+        //        return BadRequest(new { message = "Invalid request" });
 
-            // 1. Get the feedback type
-            var feedbackType = await _context.FeedbackType
-                .FirstOrDefaultAsync(ft => ft.feedback_type_title == request.type_name);
+        //    // 1. Get the feedback type
+        //    var feedbackType = await _context.FeedbackType
+        //        .FirstOrDefaultAsync(ft => ft.feedback_type_title == request.type_name);
 
-            if (feedbackType == null)
-                return NotFound(new { message = "Feedback type not found." });
+        //    if (feedbackType == null)
+        //        return NotFound(new { message = "Feedback type not found." });
 
-            // 2. Get matching feedback groups
-            var feedbackGroups = await (
-                from fg in _context.FeedbackGroup
-                join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
-                join c in _context.Courses on f.course_id equals c.course_id
-                join m in _context.Modules on f.module_id equals m.module_id
-                join s in _context.Staff on fg.StaffId equals s.staff_id
-                where c.course_name == request.course_name
-                      && m.module_name == request.module_name
-                        && (s.first_name + " " + s.last_name) == request.staff_name   // ✅ staff full name
+        //    // 2. Get matching feedback groups
+        //    var feedbackGroups = await (
+        //        from fg in _context.FeedbackGroup
+        //        join f in _context.Feedback on fg.FeedbackId equals f.FeedbackId
+        //        join c in _context.Courses on f.course_id equals c.course_id
+        //        join m in _context.Modules on f.module_id equals m.module_id
+        //        join s in _context.Staff on fg.StaffId equals s.staff_id
+        //        where c.course_name == request.course_name
+        //              && m.module_name == request.module_name
+        //                && (s.first_name + " " + s.last_name) == request.staff_name   // ✅ staff full name
 
-                select fg
-            ).ToListAsync();
-
-
-            if (!feedbackGroups.Any())
-                return NotFound(new { message = "No feedback groups found." });
-
-            var feedbackGroupIds = feedbackGroups.Select(fg => fg.FeedbackGroupId).ToList();
-            // 3. Submitted & Remaining count
-            // var submittedCount = await _context.FeedbackSubmits
-            //   .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
-
-            // ✅ Use Students table directly
-            //var groupStudentCount = await (from st in _context.Students
-            //                               join g in _context.Groups on st.group_id equals g.group_id
-            //                               join fg in _context.FeedbackGroup on g.group_id equals fg.GroupId
-            //                               where feedbackGroupIds.Contains(fg.FeedbackGroupId)
-            //                               select st).CountAsync();
-
-            //var remainingCount = groupStudentCount - submittedCount;
-
-            // pick first feedbackGroup to resolve course & group
-            var firstFeedbackGroup = await _context.FeedbackGroup
-                .Include(fg => fg.Feedback)
-                .FirstOrDefaultAsync(fg => feedbackGroupIds.Contains(fg.FeedbackGroupId));
-
-            int totalStudents = 0;
-            if (firstFeedbackGroup != null)
-            {
-                int courseId = firstFeedbackGroup.Feedback.course_id;
-
-                // get students enrolled in course
-                var courseStudents = from cs in _context.CourseStudents
-                                     join st in _context.Students on cs.student_rollno equals st.student_rollno
-                                     where cs.course_id == courseId
-                                     select st;
-
-                // filter by group if group assigned
-                if (firstFeedbackGroup.GroupId.HasValue)
-                {
-                    int groupId = firstFeedbackGroup.GroupId.Value;
-                    courseStudents = courseStudents.Where(st => st.group_id == groupId);
-                }
-
-                totalStudents = await courseStudents.CountAsync();
-            }
-
-            var submittedCount = await _context.FeedbackSubmits
-                .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
-
-            var remainingCount = totalStudents - submittedCount;
+        //        select fg
+        //    ).ToListAsync();
 
 
-            // 4. Fetch all answers with question info
-            var answers = await (from fa in _context.FeedbackAnswers
-                                 join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
-                                 join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
-                                 where feedbackGroupIds.Contains(fs.feedback_group_id ?? 0)
-                                       && fq.feedback_type_id == feedbackType.feedback_type_id
-                                 select new
-                                 {
-                                     fq.question_id,
-                                     fq.question,
-                                     fq.question_type,
-                                     fa.answer
-                                 }).ToListAsync();
+        //    if (!feedbackGroups.Any())
+        //        return NotFound(new { message = "No feedback groups found." });
 
-            // 5. Helper: Map MCQ → number
-            int MapMcqAnswerToNumber(string ans) => ans switch
-            {
-                "Excellent" => 5,
-                "Good" => 4,
-                "Average" => 3,
-                "Poor" => 2,
-                "Very Poor" => 1,
-                _ => 0
-            };
+        //    var feedbackGroupIds = feedbackGroups.Select(fg => fg.FeedbackGroupId).ToList();
+        //    // 3. Submitted & Remaining count
+        //    // var submittedCount = await _context.FeedbackSubmits
+        //    //   .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
 
-            // 6. Build question stats
-            var questionStats = answers
-                .GroupBy(a => new { a.question_id, a.question, a.question_type })
-                .Select(g => new
-                {
-                    QuestionId = g.Key.question_id,
-                    QuestionText = g.Key.question,
-                    QuestionType = g.Key.question_type,
+        //    // ✅ Use Students table directly
+        //    //var groupStudentCount = await (from st in _context.Students
+        //    //                               join g in _context.Groups on st.group_id equals g.group_id
+        //    //                               join fg in _context.FeedbackGroup on g.group_id equals fg.GroupId
+        //    //                               where feedbackGroupIds.Contains(fg.FeedbackGroupId)
+        //    //                               select st).CountAsync();
 
-                    Excellent = g.Count(a => a.answer == "Excellent" || a.answer == "5"),
-                    Good = g.Count(a => a.answer == "Good" || a.answer == "4"),
-                    Average = g.Count(a => a.answer == "Average" || a.answer == "3"),
-                    Poor = g.Count(a => a.answer == "Poor" || a.answer == "2"),
-                    VeryPoor = g.Count(a => a.answer == "Very Poor" || a.answer == "1"),
+        //    //var remainingCount = groupStudentCount - submittedCount;
 
-                    Ratings = g.Select(a =>
-                        g.Key.question_type == "mcq"
-                            ? MapMcqAnswerToNumber(a.answer)
-                            : int.TryParse(a.answer, out var val) ? val : 0
-                    ).ToList()
-                })
-                .ToList();
+        //    // pick first feedbackGroup to resolve course & group
+        //    var firstFeedbackGroup = await _context.FeedbackGroup
+        //        .Include(fg => fg.Feedback)
+        //        .FirstOrDefaultAsync(fg => feedbackGroupIds.Contains(fg.FeedbackGroupId));
 
-            // 7. Calculate overall average rating
-            double avgRating = questionStats
-                .SelectMany(q => q.Ratings)
-                .DefaultIfEmpty(0)
-                .Average();
+        //    int totalStudents = 0;
+        //    if (firstFeedbackGroup != null)
+        //    {
+        //        int courseId = firstFeedbackGroup.Feedback.course_id;
 
-            // 8. Return response
-            return Ok(new
-            {
-                staff_name = request.staff_name,
-                module_name = request.module_name,
-                course_name = request.course_name,
-                type_name = request.type_name,
-                date = request.date,
-                Submitted = submittedCount,
-                Remaining = remainingCount,
-                Rating = avgRating,
-                Questions = questionStats.Select(q => new
-                {
-                    q.QuestionId,
-                    q.QuestionText,
-                    q.QuestionType,
-                    q.Excellent,
-                    q.Good,
-                    q.Average,
-                    q.Poor,
-                    q.VeryPoor
-                })
-            });
+        //        // get students enrolled in course
+        //        var courseStudents = from cs in _context.CourseStudents
+        //                             join st in _context.Students on cs.student_rollno equals st.student_rollno
+        //                             where cs.course_id == courseId
+        //                             select st;
+
+        //        // filter by group if group assigned
+        //        if (firstFeedbackGroup.GroupId.HasValue)
+        //        {
+        //            int groupId = firstFeedbackGroup.GroupId.Value;
+        //            courseStudents = courseStudents.Where(st => st.group_id == groupId);
+        //        }
+
+        //        totalStudents = await courseStudents.CountAsync();
+        //    }
+
+        //    var submittedCount = await _context.FeedbackSubmits
+        //        .CountAsync(fs => feedbackGroupIds.Contains(fs.feedback_group_id ?? 0));
+
+        //    var remainingCount = totalStudents - submittedCount;
+
+
+        //    // 4. Fetch all answers with question info
+        //    var answers = await (from fa in _context.FeedbackAnswers
+        //                         join fq in _context.FeedbackQuestions on fa.question_id equals fq.question_id
+        //                         join fs in _context.FeedbackSubmits on fa.feedback_submit_id equals fs.feedback_submit_id
+        //                         where feedbackGroupIds.Contains(fs.feedback_group_id ?? 0)
+        //                               && fq.feedback_type_id == feedbackType.feedback_type_id
+        //                         select new
+        //                         {
+        //                             fq.question_id,
+        //                             fq.question,
+        //                             fq.question_type,
+        //                             fa.answer
+        //                         }).ToListAsync();
+
+        //    // 5. Helper: Map MCQ → number
+        //    int MapMcqAnswerToNumber(string ans) => ans switch
+        //    {
+        //        "Excellent" => 5,
+        //        "Good" => 4,
+        //        "Average" => 3,
+        //        "Poor" => 2,
+        //        "Very Poor" => 1,
+        //        _ => 0
+        //    };
+
+        //    // 6. Build question stats
+        //    var questionStats = answers
+        //        .GroupBy(a => new { a.question_id, a.question, a.question_type })
+        //        .Select(g => new
+        //        {
+        //            QuestionId = g.Key.question_id,
+        //            QuestionText = g.Key.question,
+        //            QuestionType = g.Key.question_type,
+
+        //            Excellent = g.Count(a => a.answer == "Excellent" || a.answer == "5"),
+        //            Good = g.Count(a => a.answer == "Good" || a.answer == "4"),
+        //            Average = g.Count(a => a.answer == "Average" || a.answer == "3"),
+        //            Poor = g.Count(a => a.answer == "Poor" || a.answer == "2"),
+        //            VeryPoor = g.Count(a => a.answer == "Very Poor" || a.answer == "1"),
+
+        //            Ratings = g.Select(a =>
+        //                g.Key.question_type == "mcq"
+        //                    ? MapMcqAnswerToNumber(a.answer)
+        //                    : int.TryParse(a.answer, out var val) ? val : 0
+        //            ).ToList()
+        //        })
+        //        .ToList();
+
+        //    // 7. Calculate overall average rating
+        //    double avgRating = questionStats
+        //        .SelectMany(q => q.Ratings)
+        //        .DefaultIfEmpty(0)
+        //        .Average();
+
+        //    // 8. Return response
+        //    return Ok(new
+        //    {
+        //        staff_name = request.staff_name,
+        //        module_name = request.module_name,
+        //        course_name = request.course_name,
+        //        type_name = request.type_name,
+        //        date = request.date,
+        //        Submitted = submittedCount,
+        //        Remaining = remainingCount,
+        //        Rating = avgRating,
+        //        Questions = questionStats.Select(q => new
+        //        {
+        //            q.QuestionId,
+        //            q.QuestionText,
+        //            q.QuestionType,
+        //            q.Excellent,
+        //            q.Good,
+        //            q.Average,
+        //            q.Poor,
+        //            q.VeryPoor
+        //        })
+        //    });
 
 
 
@@ -812,7 +812,7 @@ namespace Feedback_System.Controllers
 
 
 
-        }
+        //}
 
         //coursewise report
         [Authorize(Roles = "Admin")]
