@@ -852,7 +852,6 @@ namespace Feedback_System.Controllers
                     _ => 0
                 };
 
-
                 double ComputeAverageForFeedbackIds(List<int> feedbackIds)
                 {
                     var submissionRatings = answers
@@ -860,19 +859,17 @@ namespace Feedback_System.Controllers
                         .GroupBy(a => a.FeedbackId)
                         .Select(submissionGroup =>
                         {
-                            var mcqValue = submissionGroup
+                          
+                            var mcqValues = submissionGroup
                                 .Where(a => a.QuestionType == "mcq")
-                                .Select(a => MapMcqAnswerToNumber(a.AnswerValue))
-                                .FirstOrDefault();
+                                .Select(a => MapMcqAnswerToNumber(a.AnswerValue));
 
-                            var ratingValue = submissionGroup
+                            
+                            var ratingValues = submissionGroup
                                 .Where(a => a.QuestionType == "rating")
-                                .Select(a => int.TryParse(a.AnswerValue, out var val) ? val : 0)
-                                .FirstOrDefault();
+                                .Select(a => int.TryParse(a.AnswerValue, out var val) ? val : 0);
 
-                            var values = new List<int>();
-                            if (mcqValue > 0) values.Add(mcqValue);
-                            if (ratingValue > 0) values.Add(ratingValue);
+                            var values = mcqValues.Concat(ratingValues).Where(v => v > 0).ToList();
 
                             return values.Any() ? values.Average() : 0;
                         })
@@ -883,8 +880,7 @@ namespace Feedback_System.Controllers
                         : 0;
                 }
 
-
-                var courseWiseReport = feedbacks
+                    var courseWiseReport = feedbacks
                     .GroupBy(f => f.Course)
                     .Select(courseGroup =>
                     {
