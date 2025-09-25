@@ -21,7 +21,7 @@ namespace Feedback_System.Controllers
         }
 
         // GET: api/course
-        [Authorize(Roles = "Admin")]
+       
         [Route("api/GetAllCourse")]
         [HttpGet]
         public IActionResult GetCourses()

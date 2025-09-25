@@ -41,7 +41,7 @@ namespace Feedback_System.Controllers
             return group;
         }
 
-        [Authorize(Roles = "Admin")]
+      
         [HttpGet("ByCourse/{courseId}")]
         public async Task<ActionResult<IEnumerable<Groups>>> GetGroupsByCourse(int courseId)
         {
@@ -75,28 +75,7 @@ namespace Feedback_System.Controllers
                 return NotFound("Course not found.");
             }
 
-            // Delete existing groups for the course
-            var existingCourseGroups = await _context.CourseGroups
-                .Where(cg => cg.course_id == dto.course_id)
-                .ToListAsync();
-
-            if (existingCourseGroups.Any())
-            {
-                // Get group IDs to delete
-                var existingGroupIds = existingCourseGroups.Select(cg => cg.group_id).ToList();
-
-                // Delete mappings first
-                _context.CourseGroups.RemoveRange(existingCourseGroups);
-
-                // Delete groups
-                var groupsToDelete = await _context.Groups
-                    .Where(g => existingGroupIds.Contains(g.group_id))
-                    .ToListAsync();
-                _context.Groups.RemoveRange(groupsToDelete);
-
-                await _context.SaveChangesAsync();
-            }
-
+            
             // Add new groups and mapping
             var createdGroups = new List<Groups>();
             foreach (var groupName in dto.groups)
@@ -127,7 +106,7 @@ namespace Feedback_System.Controllers
             return Ok(new
             {
                 message = "Groups added/updated successfully",
-                groups = createdGroups.Select(g => new { g.group_id, g.group_name })
+              
             });
         }
 
