@@ -88,29 +88,34 @@ namespace Feedback_System.Controllers
 
 
         [HttpPost("UploadProfile")]
-        [Consumes("multipart/form-data")]  // 🔑 Tell Swagger this is a form-data endpoint
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadProfile([FromForm] StudentCreateDto dto, IFormFile? profileImage)
         {
-            // If no image uploaded, it's optional
             string? filePath = null;
 
             if (profileImage != null && profileImage.Length > 0)
             {
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
+                var safeFirstName = dto.FirstName?.Trim().Replace(" ", "_");
+                var safeLastName = dto.LastName?.Trim().Replace(" ", "_");
+                var extension = Path.GetExtension(profileImage.FileName);
+
+                // Example: John_Doe.jpg
+                var fileName = $"{safeFirstName}_{safeLastName}{extension}";
+
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/student");
 
                 if (!Directory.Exists(uploadPath))
                     Directory.CreateDirectory(uploadPath);
 
-                filePath = Path.Combine(uploadPath, fileName);
+                var fullPath = Path.Combine(uploadPath, fileName);
 
-                using var stream = new FileStream(filePath, FileMode.Create);
+                using var stream = new FileStream(fullPath, FileMode.Create);
                 await profileImage.CopyToAsync(stream);
 
-                filePath = $"/images/profiles/{fileName}";
+                // Save relative path
+                filePath = $"/images/student/{fileName}";
             }
 
-            // Save student
             var student = new Student
             {
                 first_name = dto.FirstName,
@@ -118,14 +123,13 @@ namespace Feedback_System.Controllers
                 email = dto.Email,
                 password = _passwordServices.HashPassword(dto.Password),
                 group_id = dto.GroupId,
-                profile_image = filePath, // ✅ null if not uploaded
+                profile_image = filePath,
                 login_time = DateTime.Now
             };
 
             _db.Students.Add(student);
             await _db.SaveChangesAsync();
 
-            // Also add to CourseStudent
             var courseStudent = new CourseStudent
             {
                 course_id = dto.CourseId,
@@ -138,9 +142,10 @@ namespace Feedback_System.Controllers
             return Ok(new
             {
                 Message = "Student created successfully",
-               
             });
         }
+
+
 
 
 

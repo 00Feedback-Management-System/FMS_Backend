@@ -38,13 +38,16 @@ namespace Feedback_System.Controllers
 
             string? filePath = null;
 
-            // Handle profile image if provided
             if (profileImage != null && profileImage.Length > 0)
             {
                 try
                 {
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
+                    var safeFirstName = dto.first_name.Trim().Replace(" ", "_");
+                    var safeLastName = dto.last_name.Trim().Replace(" ", "_");
+                    var extension = Path.GetExtension(profileImage.FileName);
+
+                    var fileName = $"{safeFirstName}_{safeLastName}{extension}";
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/staff");
 
                     if (!Directory.Exists(uploadPath))
                         Directory.CreateDirectory(uploadPath);
@@ -54,8 +57,7 @@ namespace Feedback_System.Controllers
                     using var stream = new FileStream(fullPath, FileMode.Create);
                     await profileImage.CopyToAsync(stream);
 
-                    // Save relative path (same as student API)
-                    filePath = $"/images/profiles/{fileName}";
+                    filePath = $"/images/staff/{fileName}";
                 }
                 catch (Exception ex)
                 {
@@ -69,8 +71,8 @@ namespace Feedback_System.Controllers
                 first_name = dto.first_name,
                 last_name = dto.last_name,
                 email = dto.email,
-                password = _passwordServices.HashPassword(dto.password), // Hash for security
-                profile_image = filePath, // null if not uploaded
+                password = _passwordServices.HashPassword(dto.password),
+                profile_image = filePath,
                 login_time = DateTime.Now
             };
 
@@ -82,6 +84,8 @@ namespace Feedback_System.Controllers
                 message = "Staff created successfully!"
             });
         }
+
+
 
         [Authorize(Roles = "Admin")]
         [HttpGet("getAllStaff")]
