@@ -661,7 +661,7 @@ namespace Feedback_System.Controllers
                 _ => 0
             };
         }
-       
+
 
         //coursewise report
         [Authorize(Roles = "Admin")]
@@ -708,12 +708,10 @@ namespace Feedback_System.Controllers
                         .GroupBy(a => a.FeedbackId)
                         .Select(submissionGroup =>
                         {
-                          
                             var mcqValues = submissionGroup
                                 .Where(a => a.QuestionType == "mcq")
                                 .Select(a => MapMcqAnswerToNumber(a.AnswerValue));
 
-                            
                             var ratingValues = submissionGroup
                                 .Where(a => a.QuestionType == "rating")
                                 .Select(a => int.TryParse(a.AnswerValue, out var val) ? val : 0);
@@ -729,60 +727,30 @@ namespace Feedback_System.Controllers
                         : 0;
                 }
 
-                    var courseWiseReport = feedbacks
+                var courseWiseReport = feedbacks
                     .GroupBy(f => f.Course)
-                    .Select(courseGroup =>
+                    .Select(courseGroup => new
                     {
-                        var courseFeedbackIds = courseGroup
-                            .Select(f => f.FeedbackId)
-                            .ToList();
+                        CourseName = courseGroup.Key.course_name,
 
-                        double courseAvgRating = ComputeAverageForFeedbackIds(courseFeedbackIds);
+                        Modules = courseGroup
+                            .GroupBy(f => f.Module)
+                            .Select(moduleGroup => new
+                            {
+                                ModuleName = moduleGroup.Key.module_name,
 
-                        return new
-                        {
-                            CourseName = courseGroup.Key.course_name,
-                            CourseAverageRating = courseAvgRating,
-
-                            Modules = courseGroup
-                                .GroupBy(f => f.Module)
-                                .Select(moduleGroup =>
-                                {
-
-                                    var feedbackTypeRatings = moduleGroup
-                                        .GroupBy(f => f.FeedbackType)
-                                        .Select(ftGroup =>
-                                        {
-                                            var ftFeedbackIds = ftGroup
-                                                .Select(f => f.FeedbackId)
-                                                .ToList();
-
-                                            double ftAvgRating = ComputeAverageForFeedbackIds(ftFeedbackIds);
-
-                                            return new
-                                            {
-                                                FeedbackTypeTitle = ftGroup.Key.feedback_type_title,
-                                                AverageRating = ftAvgRating
-                                            };
-                                        })
-                                        .ToList();
-
-
-                                    var moduleFeedbackIds = moduleGroup
-                                        .Select(f => f.FeedbackId)
-                                        .ToList();
-
-                                    double moduleAvgRating = ComputeAverageForFeedbackIds(moduleFeedbackIds);
-
-                                    return new
+                                FeedbackTypes = moduleGroup
+                                    .GroupBy(f => f.FeedbackType)
+                                    .Select(ftGroup => new
                                     {
-                                        ModuleName = moduleGroup.Key.module_name,
-                                        ModuleAverageRating = moduleAvgRating,
-                                        FeedbackTypes = feedbackTypeRatings
-                                    };
-                                })
-                                .ToList()
-                        };
+                                        FeedbackTypeTitle = ftGroup.Key.feedback_type_title,
+                                        AverageRating = ComputeAverageForFeedbackIds(
+                                            ftGroup.Select(f => f.FeedbackId).ToList()
+                                        )
+                                    })
+                                    .ToList()
+                            })
+                            .ToList()
                     })
                     .ToList();
 
@@ -793,9 +761,10 @@ namespace Feedback_System.Controllers
                 return StatusCode(500, new { message = "Error generating report", error = ex.Message });
             }
         }
+    }
 
 
 
 
     }
-}
+
