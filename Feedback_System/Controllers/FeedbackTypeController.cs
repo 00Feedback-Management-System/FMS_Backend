@@ -219,5 +219,17 @@ namespace Feedback_System.Controllers
             return Ok(new { Message = "FeedbackType deleted successfully" });
         }
 
+        // GET: api/FeedbackType/CheckEditable/{id}
+        [Authorize(Roles = "Admin")]
+        [HttpGet("CheckEditable/{id}")]
+        public async Task<IActionResult> CheckEditable(int id)
+        {
+            bool isScheduled = await _db.Feedback.AnyAsync(f => f.feedback_type_id == id);
+            if (isScheduled)
+                return BadRequest(new { message = "This Feedback Type is already scheduled and cannot be edited." });
+
+            return Ok(new { message = "Editable" });
+        }
+
     }
 }
